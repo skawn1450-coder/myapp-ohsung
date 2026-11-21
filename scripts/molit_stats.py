@@ -38,9 +38,10 @@ def fetch(key, code, ym):
             try:
                 xml = urllib.request.urlopen(url, timeout=30).read().decode("utf-8")
                 break
-            except Exception:
+            except Exception as e:
                 if attempt == 3:
-                    raise
+                    # 인증키가 들어 있는 URL은 절대 출력하지 않아요
+                    raise RuntimeError(f"request failed for {code} {ym}: {type(e).__name__}") from None
                 time.sleep(3)
         code_m = re.search(r"<resultCode>([^<]*)<", xml)
         if code_m and code_m.group(1) not in ("000", "00"):
@@ -71,7 +72,7 @@ def main():
     key = os.environ.get("MOLIT_KEY", "").strip()
     if not key:
         sys.exit("MOLIT_KEY is not set")
-    today = dt.date.today()
+    today = dt.datetime.now(dt.timezone(dt.timedelta(hours=9))).date()  # KST 기준
     settled = month_add(today.replace(day=1), -2)
     year_ago = month_add(settled, -12)
     ym = lambda d: f"{d.year}{d.month:02d}"
