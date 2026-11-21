@@ -78,7 +78,7 @@ fun SeriesChart(
         val values = points.map { it.y }
 
         // X-axis labels: show up to ~6 evenly spaced.
-        val every = max(1, (points.size + 5) / 6)
+        val every = if (type == "bar" && points.size <= 8) 1 else max(1, (points.size + 5) / 6)
 
         if (type == "bar") {
             val maxAbs = values.maxOf { abs(it) }.takeIf { it > 0 } ?: 1.0

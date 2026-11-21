@@ -28,13 +28,16 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.saveable.rememberSaveableStateHolder
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.ohsung.marketbrief.data.ChartRange
@@ -53,6 +56,9 @@ fun MarketApp(
     initialTab: Int = 0,
 ) {
     var tab by rememberSaveable { mutableIntStateOf(initialTab) }
+    // Each tab keeps its own scroll position; tapping the active tab again scrolls it to the top.
+    val tabStates = rememberSaveableStateHolder()
+    var reselectCount by rememberSaveable { mutableIntStateOf(0) }
     val sections = feed?.sections.orEmpty()
     val current = sections.getOrNull(tab.coerceIn(0, (sections.size - 1).coerceAtLeast(0)))
 
@@ -85,7 +91,8 @@ fun MarketApp(
                     sections.forEachIndexed { i, s ->
                         NavigationBarItem(
                             selected = i == tab,
-                            onClick = { tab = i },
+                            modifier = Modifier.testTag("tab-${s.id}"),
+                            onClick = { if (i == tab) reselectCount++ else tab = i },
                             icon = { Icon(AppIcons.forSection(s.id), contentDescription = null, modifier = Modifier.size(22.dp)) },
                             label = { Text(s.title, style = MaterialTheme.typography.labelMedium) },
                             colors = NavigationBarItemDefaults.colors(
@@ -105,7 +112,9 @@ fun MarketApp(
             modifier = Modifier.fillMaxSize().padding(padding),
         ) {
             when {
-                current != null -> SectionScreen(current, feed!!, error, refreshKey, loader)
+                current != null -> tabStates.SaveableStateProvider(current.id) {
+                    SectionScreen(current, feed!!, error, refreshKey, reselectCount, loader)
+                }
                 else -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                     if (error != null) {
                         Text(error, textAlign = TextAlign.Center, modifier = Modifier.padding(32.dp))
@@ -119,13 +128,28 @@ fun MarketApp(
 }
 
 @Composable
-private fun SectionScreen(section: Section, feed: Feed, error: String?, refreshKey: Int, loader: QuoteLoader) {
-    var range by rememberSaveable(section.id) { mutableStateOf(ChartRange.M3) }
+private fun SectionScreen(
+    section: Section,
+    feed: Feed,
+    error: String?,
+    refreshKey: Int,
+    reselectCount: Int,
+    loader: QuoteLoader,
+) {
+    var range by rememberSaveable { mutableStateOf(ChartRange.M3) }
     val listState = rememberLazyListState()
+    // Only react to re-taps made while this tab is showing, not to the count it was opened with.
+    var handledReselect by rememberSaveable { mutableIntStateOf(reselectCount) }
+    LaunchedEffect(reselectCount) {
+        if (reselectCount != handledReselect) {
+            handledReselect = reselectCount
+            listState.animateScrollToItem(0)
+        }
+    }
 
     LazyColumn(
         state = listState,
-        modifier = Modifier.fillMaxSize(),
+        modifier = Modifier.fillMaxSize().testTag("sectionList"),
         contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
