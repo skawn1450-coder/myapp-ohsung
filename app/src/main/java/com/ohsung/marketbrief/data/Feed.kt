@@ -10,6 +10,8 @@ data class Feed(
     val disclaimer: String,
     val sections: List<Section>,
     val events: List<MarketEvent> = emptyList(),
+    /** DS operating-profit scenarios for the bonus calculator; empty means use the built-in defaults. */
+    val bonusYears: List<OpYear> = emptyList(),
 )
 
 /**
@@ -103,6 +105,7 @@ object FeedParser {
             disclaimer = root.str("disclaimer"),
             sections = root.objects("sections").map(::section),
             events = root.objects("events").mapNotNull(::event).sortedBy { it.date },
+            bonusYears = BonusModelParser.parse(root.optJSONObject("bonusModel")),
         )
     }
 

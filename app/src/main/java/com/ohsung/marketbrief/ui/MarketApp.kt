@@ -211,6 +211,8 @@ private fun SectionScreen(
     var realPriceOpen by rememberSaveable { mutableStateOf(false) }
     var myHomeOpen by rememberSaveable { mutableStateOf(false) }
     var assetOpen by rememberSaveable { mutableStateOf(false) }
+    var bonusOpen by rememberSaveable { mutableStateOf(false) }
+    if (bonusOpen) BonusDialog(feed.bonusYears, loader) { bonusOpen = false }
     if (realPriceOpen) RealPriceDialog(onDismiss = { realPriceOpen = false }, onHomeSet = x.onHomeChanged)
     if (myHomeOpen && x.home.config != null) {
         MyHomeDialog(
@@ -270,6 +272,9 @@ private fun SectionScreen(
         }
         if (section.id == "issues") {
             item(key = "assets") { AssetEntry { assetOpen = true } }
+        }
+        if (section.id == "memory") {
+            item(key = "bonus") { BonusEntry { bonusOpen = true } }
         }
 
         if (section.metrics.isNotEmpty()) {

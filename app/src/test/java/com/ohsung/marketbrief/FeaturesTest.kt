@@ -202,6 +202,40 @@ class FeaturesTest {
         compose.onRoot().captureRoboImage("build/screens/14_multi_chart.png")
     }
 
+    @Test fun bonusMath() {
+        // Calibration: union estimate, salary ~8,200만, DS profit 370조 → memory ≈ 7.5억 (special + OPI, pre-tax).
+        val mem = com.ohsung.marketbrief.data.BonusCalc.compute(
+            com.ohsung.marketbrief.data.BonusInput(8200, com.ohsung.marketbrief.data.BonusUnit.MEMORY, 400, 0, 1, 370, 2026),
+        )
+        assertEquals(7.5e8, mem.special + mem.opi, 2e6)
+        val common = com.ohsung.marketbrief.data.BonusCalc.compute(
+            com.ohsung.marketbrief.data.BonusInput(8200, com.ohsung.marketbrief.data.BonusUnit.COMMON, 400, 0, 1, 370, 2026),
+        )
+        assertEquals(5.3e8, common.special + common.opi, 1e7)
+        // Below the 200조 floor there is no special bonus (2026–2028).
+        val low = com.ohsung.marketbrief.data.BonusCalc.compute(
+            com.ohsung.marketbrief.data.BonusInput(8200, com.ohsung.marketbrief.data.BonusUnit.MEMORY, 400, 100, 1, 190, 2027),
+        )
+        assertTrue(low.belowThreshold)
+        assertEquals(0.0, low.special, 0.0)
+        assertTrue(low.net > 0)
+        // Tax sanity: 7억 총급여, 3 people → roughly 2.3~2.7억 including local tax (press example ≈ 2.49억).
+        val t = com.ohsung.marketbrief.data.KoreanTax.annual(7e8, 3)
+        assertTrue("tax $t", t in 2.3e8..2.7e8)
+        assertTrue(mem.refund > 0)
+        assertTrue(mem.net < mem.gross * 0.6)
+    }
+
+    @Test fun bonusScreen() {
+        val ctx = ApplicationProvider.getApplicationContext<android.content.Context>()
+        com.ohsung.marketbrief.data.BonusStore(ctx).apply { salary = 9000; unit = com.ohsung.marketbrief.data.BonusUnit.MEMORY }
+        compose.setContent {
+            MarketTheme { Surface { com.ohsung.marketbrief.ui.BonusContent(emptyList(), { s, r -> fakeQuote(s, r) }, {}) } }
+        }
+        compose.waitForIdle()
+        compose.onRoot().captureRoboImage("build/screens/15_bonus.png")
+    }
+
     @Test fun assetScreen() {
         val ctx = ApplicationProvider.getApplicationContext<android.content.Context>()
         HomeStore(ctx).assets = AssetInput(home = 60000, homeChip = true, loan = 35000, chipStocks = 8000, companyStock = 12000, otherStocks = 3000, cash = 7000, incomeChip = true)

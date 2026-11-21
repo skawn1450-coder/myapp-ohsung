@@ -31,6 +31,10 @@ android {
             val v = localProps.getProperty("myhome.$k", "").replace("\\", "").replace("\"", "")
             buildConfigField("String", "MYHOME_${k.uppercase()}", "\"$v\"")
         }
+        listOf("salary", "unit").forEach { k ->
+            val v = localProps.getProperty("my.$k", "").replace("\\", "").replace("\"", "")
+            buildConfigField("String", "MY_${k.uppercase()}", "\"$v\"")
+        }
     }
 
     signingConfigs {

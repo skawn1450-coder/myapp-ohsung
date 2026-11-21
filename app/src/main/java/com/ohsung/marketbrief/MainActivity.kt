@@ -20,6 +20,7 @@ import com.ohsung.marketbrief.data.AlertPrefs
 import com.ohsung.marketbrief.data.AppUpdate
 import com.ohsung.marketbrief.data.ArchiveEntry
 import com.ohsung.marketbrief.data.ArchiveRepository
+import com.ohsung.marketbrief.data.BonusStore
 import com.ohsung.marketbrief.data.ChartRange
 import com.ohsung.marketbrief.data.Deal
 import com.ohsung.marketbrief.data.Feed
@@ -68,6 +69,7 @@ class MainViewModel(private val app: Application) : AndroidViewModel(app) {
     init {
         if (molit.apiKey.isBlank() && BuildConfig.MOLIT_KEY.isNotBlank()) molit.apiKey = BuildConfig.MOLIT_KEY
         homeStore.seed(buildHome())
+        BonusStore(app).seed(BuildConfig.MY_SALARY.toIntOrNull(), BuildConfig.MY_UNIT)
         viewModelScope.launch {
             repo.loadLocal()?.let { latest = it; feed = it }
             refresh(manual = false)
