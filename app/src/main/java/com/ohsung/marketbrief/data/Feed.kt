@@ -24,7 +24,11 @@ data class Section(
     val positives: List<Factor>,
     val negatives: List<Factor>,
     val news: List<NewsItem>,
+    val compass: List<CompassLine> = emptyList(),
 )
+
+/** One line of the "오늘의 방향" box: caution / history / action. */
+data class CompassLine(val kind: String, val text: String, val url: String)
 
 enum class Trend { UP, DOWN, FLAT }
 
@@ -117,6 +121,7 @@ object FeedParser {
                 date = it.str("date"),
             )
         },
+        compass = o.objects("compass").map { CompassLine(it.str("kind"), it.str("text"), it.str("url")) },
     )
 
     private fun factor(o: JSONObject) = Factor(o.str("title"), o.str("detail"), o.str("source"), o.str("url"))

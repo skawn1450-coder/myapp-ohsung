@@ -215,6 +215,23 @@
           "source": "뉴시스",
           "url": "https://www.newsis.com/view/NISX20260803_0003733686"
         }
+      ],
+      "compass": [
+        {
+          "kind": "caution",
+          "text": "서울 오름폭이 91주 만에 최소이고, 강남·한강벨트 하락이 번지는 중이에요.",
+          "url": "https://www.mt.co.kr/estate/2026/11/19/2026111910082935165"
+        },
+        {
+          "kind": "history",
+          "text": "2022년 금리 인상기엔 서울 아파트값이 한 해 7.2% 떨어졌어요.",
+          "url": "https://news.bizwatch.co.kr/article/real_estate/2022/12/29/0031"
+        },
+        {
+          "kind": "action",
+          "text": "대출을 끼고 산다면 금리가 0.5%p 더 오를 때의 이자를 미리 계산해 두세요.",
+          "url": ""
+        }
       ]
     },
     {
@@ -358,6 +375,23 @@
           "detail": "미국 중간선거에서 민주당이 상·하원을 모두 가져가면서 규제 강화 가능성이 반도체 수요 우려로 이어졌어요.",
           "source": "비즈니스워치",
           "url": "https://news.bizwatch.co.kr/article/market/2026/11/05/0035"
+        }
+      ],
+      "compass": [
+        {
+          "kind": "caution",
+          "text": "엔비디아 호실적에도 급락할 만큼 심리가 약해요. 외국인 매도가 멈추는지가 첫 확인 포인트예요.",
+          "url": "https://seoul.co.kr/news/economy/2026/11/20/20261120500275"
+        },
+        {
+          "kind": "history",
+          "text": "2018년 미국 중간선거 뒤에도 빅테크 규제·금리 인상이 겹치며 조정이 이어졌어요.",
+          "url": "https://kbthink.com/investment/today-pick/2611/261106-2.html"
+        },
+        {
+          "kind": "action",
+          "text": "한 번에 몰기보다 나눠서 보고, 내 자산에서 반도체 비중이 얼마인지 점검해 볼 구간이에요.",
+          "url": ""
         }
       ]
     },
@@ -569,6 +603,23 @@
           "source": "머니투데이",
           "url": "https://www.mt.co.kr/article/2026111316583675717"
         }
+      ],
+      "compass": [
+        {
+          "kind": "caution",
+          "text": "DDR4 현물가가 3주 연속 내렸어요. 현물가 변화는 보통 2~4개월 뒤 계약가에 반영돼요.",
+          "url": "https://newstomato.com/ReadNews.aspx?no=1080045"
+        },
+        {
+          "kind": "history",
+          "text": "2018년엔 현물가가 2017년 4분기부터 먼저 내렸고, 고정가는 2018년 3분기부터 꺾였어요.",
+          "url": "https://news.skhynix.co.kr/?p=18884"
+        },
+        {
+          "kind": "action",
+          "text": "다만 트렌드포스는 내년에도 D램 공급 부족을 예상해요. 현물가 흐름과 1분기 계약가 협상을 함께 보세요.",
+          "url": "https://www.trendforce.com/presscenter/news/20260730-13158.html"
+        }
       ]
     },
     {
@@ -694,6 +745,23 @@
           "summary": "미국·이란 협상이 불투명해지며 브렌트유가 3.3% 올랐고, 엔/달러 환율도 160엔대로 올라섰어요.",
           "source": "연합뉴스(한국무역협회 전재)",
           "url": "https://www.kita.net/board/totalTradeNews/totalTradeNewsDetail.do?no=106147&siteId=6"
+        }
+      ],
+      "compass": [
+        {
+          "kind": "caution",
+          "text": "주식·집값·코인이 모두 금리와 AI 투자 심리에 같이 흔들리고 있어요.",
+          "url": ""
+        },
+        {
+          "kind": "history",
+          "text": "2022년 금리 인상기엔 집값이 급락하고 거래가 끊겼어요.",
+          "url": "https://www.fnnews.com/news/202212150602589601"
+        },
+        {
+          "kind": "action",
+          "text": "반도체 업계에 있다면 월급·성과급·자사주·집값이 같은 업황에 묶여 있어요. 자산이 한쪽으로 쏠렸는지 점검해 보세요.",
+          "url": ""
         }
       ]
     }

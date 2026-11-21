@@ -412,3 +412,69 @@ fun Footer(disclaimer: String, updated: String) {
         )
     }
 }
+
+/** "오늘의 방향": what to watch out for, what happened in similar past moments, and what to consider. */
+@Composable
+fun CompassCard(lines: List<com.ohsung.marketbrief.data.CompassLine>) {
+    val open = rememberOpenUrl()
+    val mc = LocalMarketColors.current
+    Surface(
+        Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(20.dp),
+        color = MaterialTheme.colorScheme.surface,
+        border = BorderStroke(1.5.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.35f)),
+    ) {
+        Column(Modifier.padding(18.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text("오늘의 방향", style = MaterialTheme.typography.titleSmall, modifier = Modifier.weight(1f))
+                Text(
+                    "참고용 · 투자 권유 아님",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+            lines.forEach { line ->
+                val (label, color) = when (line.kind) {
+                    "caution" -> "조심" to mc.up
+                    "history" -> "과거엔" to MaterialTheme.colorScheme.onSurfaceVariant
+                    else -> "방향" to MaterialTheme.colorScheme.primary
+                }
+                Spacer(Modifier.height(12.dp))
+                Row(
+                    Modifier.fillMaxWidth().clickable(enabled = line.url.isNotBlank()) { open(line.url) },
+                    verticalAlignment = Alignment.Top,
+                ) {
+                    Text(
+                        label,
+                        style = MaterialTheme.typography.labelMedium,
+                        color = color,
+                        modifier = Modifier.width(46.dp).padding(top = 2.dp),
+                    )
+                    Text(
+                        line.text + if (line.url.isNotBlank()) " ›" else "",
+                        style = MaterialTheme.typography.bodyMedium,
+                        modifier = Modifier.weight(1f),
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun UpdateBanner(update: com.ohsung.marketbrief.data.AppUpdate) {
+    val open = rememberOpenUrl()
+    Surface(
+        Modifier.fillMaxWidth().clip(RoundedCornerShape(16.dp)).clickable { open(update.downloadUrl) },
+        shape = RoundedCornerShape(16.dp),
+        color = MaterialTheme.colorScheme.primary,
+    ) {
+        Row(Modifier.padding(horizontal = 16.dp, vertical = 12.dp), verticalAlignment = Alignment.CenterVertically) {
+            Column(Modifier.weight(1f)) {
+                Text("새 버전이 나왔어요 (${update.versionName})", style = MaterialTheme.typography.titleSmall, color = MaterialTheme.colorScheme.onPrimary)
+                Text("눌러서 받은 뒤 설치하면 돼요", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.85f))
+            }
+            Text("받기 ›", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onPrimary)
+        }
+    }
+}

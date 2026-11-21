@@ -77,6 +77,9 @@ class ScreenshotTest {
 
     @Test fun feedParses() {
         assertEquals(listOf("realestate", "stocks", "memory", "issues"), feed.sections.map { it.id })
+        feed.sections.forEach { s ->
+            assertEquals(listOf("caution", "history", "action"), s.compass.map { it.kind })
+        }
     }
 
     @Test fun realEstate() = shoot(0, "1_realestate")

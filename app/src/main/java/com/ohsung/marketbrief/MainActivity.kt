@@ -12,7 +12,9 @@ import androidx.compose.runtime.setValue
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.ohsung.marketbrief.data.AppUpdate
 import com.ohsung.marketbrief.data.Feed
+import com.ohsung.marketbrief.data.UpdateChecker
 import com.ohsung.marketbrief.data.FeedRepository
 import com.ohsung.marketbrief.data.QuoteRepository
 import com.ohsung.marketbrief.ui.MarketApp
@@ -31,12 +33,15 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
     /** Bumped on manual refresh so ticker rows reload their quotes. */
     var refreshKey by mutableIntStateOf(0)
         private set
+    var update by mutableStateOf<AppUpdate?>(null)
+        private set
 
     init {
         viewModelScope.launch {
             feed = repo.loadLocal()
             refresh(manual = false)
         }
+        viewModelScope.launch { update = UpdateChecker.check(BuildConfig.VERSION_CODE) }
     }
 
     fun refresh(manual: Boolean = true) {
@@ -73,6 +78,7 @@ class MainActivity : ComponentActivity() {
                     refreshing = vm.refreshing,
                     error = vm.error,
                     refreshKey = vm.refreshKey,
+                    update = vm.update,
                     onRefresh = { vm.refresh() },
                     loader = { symbol, range -> QuoteRepository.fetch(symbol, range) },
                 )

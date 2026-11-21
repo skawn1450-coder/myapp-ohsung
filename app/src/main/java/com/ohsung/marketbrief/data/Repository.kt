@@ -128,3 +128,26 @@ object QuoteRepository {
         )
     }
 }
+
+/** A newer APK published to GitHub Releases by the build workflow. */
+data class AppUpdate(val versionCode: Int, val versionName: String, val downloadUrl: String)
+
+object UpdateChecker {
+    private const val LATEST =
+        "https://api.github.com/repos/skawn1450-coder/myapp-ohsung/releases/latest"
+
+    /** Returns the latest release if it is newer than [currentVersionCode], else null. */
+    suspend fun check(currentVersionCode: Int): AppUpdate? = withContext(Dispatchers.IO) {
+        runCatching {
+            val o = JSONObject(httpGet(LATEST))
+            val code = o.optString("tag_name").removePrefix("build-").toIntOrNull() ?: return@runCatching null
+            if (code <= currentVersionCode) return@runCatching null
+            val apk = o.optJSONArray("assets")?.let { a ->
+                (0 until a.length()).map { a.getJSONObject(it) }
+                    .firstOrNull { it.optString("name").endsWith(".apk") }
+                    ?.optString("browser_download_url")
+            }
+            AppUpdate(code, "0.1.$code", apk ?: o.optString("html_url"))
+        }.getOrNull()
+    }
+}

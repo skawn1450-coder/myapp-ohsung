@@ -40,6 +40,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import com.ohsung.marketbrief.data.AppUpdate
 import com.ohsung.marketbrief.data.ChartRange
 import com.ohsung.marketbrief.data.Feed
 import com.ohsung.marketbrief.data.Section
@@ -54,6 +55,7 @@ fun MarketApp(
     onRefresh: () -> Unit,
     loader: QuoteLoader,
     initialTab: Int = 0,
+    update: AppUpdate? = null,
 ) {
     var tab by rememberSaveable { mutableIntStateOf(initialTab) }
     // Each tab keeps its own scroll position; tapping the active tab again scrolls it to the top.
@@ -125,7 +127,7 @@ fun MarketApp(
         ) {
             when {
                 current != null -> tabStates.SaveableStateProvider(current.id) {
-                    SectionScreen(current, feed!!, error, refreshKey, reselectCount, loader)
+                    SectionScreen(current, feed!!, error, refreshKey, reselectCount, loader, update)
                 }
                 else -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                     if (error != null) {
@@ -147,6 +149,7 @@ private fun SectionScreen(
     refreshKey: Int,
     reselectCount: Int,
     loader: QuoteLoader,
+    update: AppUpdate?,
 ) {
     var range by rememberSaveable { mutableStateOf(ChartRange.M3) }
     val listState = rememberLazyListState()
@@ -165,6 +168,9 @@ private fun SectionScreen(
         contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
+        if (update != null) {
+            item(key = "update") { UpdateBanner(update) }
+        }
         if (error != null) {
             item(key = "error") {
                 Text(
@@ -176,6 +182,9 @@ private fun SectionScreen(
             }
         }
         item(key = "headline") { HeadlineCard(section.headline, section.summary) }
+        if (section.compass.isNotEmpty()) {
+            item(key = "compass") { CompassCard(section.compass) }
+        }
 
         if (section.metrics.isNotEmpty()) {
             item(key = "metrics") { MetricsGrid(section.metrics) }
