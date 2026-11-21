@@ -66,6 +66,7 @@ fun SeriesChart(
     val measurer = rememberTextMeasurer()
     val labelColor = MaterialTheme.colorScheme.onSurfaceVariant
     val gridColor = MaterialTheme.colorScheme.outlineVariant
+    val labelBg = MaterialTheme.colorScheme.surface.copy(alpha = 0.9f)
     val valueStyle = TextStyle(fontSize = 10.sp, color = labelColor)
     val axisStyle = TextStyle(fontSize = 10.sp, color = labelColor)
 
@@ -132,7 +133,20 @@ fun SeriesChart(
                 if (showValue) {
                     val tl = measurer.measure(formatAxis(p.y, unit), valueStyle)
                     val tx = (x - tl.size.width / 2).coerceIn(0f, size.width - tl.size.width)
-                    drawText(tl, topLeft = Offset(tx, (y(p.y) - tl.size.height - 4.dp.toPx()).coerceAtLeast(0f)))
+                    // Put the label on the side away from the line: above local highs, below local lows.
+                    val neighbors = listOfNotNull(points.getOrNull(i - 1)?.y, points.getOrNull(i + 1)?.y)
+                    val above = neighbors.isEmpty() || p.y >= neighbors.average()
+                    val gap = 6.dp.toPx()
+                    val ty = if (above) y(p.y) - tl.size.height - gap else y(p.y) + gap
+                    val top = ty.coerceIn(0f, topPad + chartH - tl.size.height)
+                    val padH = 3.dp.toPx()
+                    drawRoundRect(
+                        labelBg,
+                        topLeft = Offset(tx - padH, top),
+                        size = Size(tl.size.width + padH * 2, tl.size.height.toFloat()),
+                        cornerRadius = CornerRadius(4.dp.toPx()),
+                    )
+                    drawText(tl, topLeft = Offset(tx, top))
                 }
                 if (i % every == 0 || i == points.lastIndex) {
                     val xl = measurer.measure(p.x, axisStyle)
@@ -156,7 +170,7 @@ private fun formatAxis(v: Double, unit: String): String {
     val n = when {
         abs(v) >= 1000 -> "%,.0f".format(v)
         abs(v) >= 100 -> "%.0f".format(v)
-        abs(v) >= 10 -> "%.1f".format(v)
+        abs(v) >= 10 && unit != "$" -> "%.1f".format(v)
         else -> "%.2f".format(v)
     }
     return when (unit) {
