@@ -22,7 +22,11 @@ data class HomeConfig(
     val label: String = "",
     val nearby: List<NearbyArea> = emptyList(),
     val purchaseManwon: Int? = null,
+    /** Approximate location of the complex, for distances to 호재/악재. Stored only on the phone. */
+    val lat: Double? = null,
+    val lon: Double? = null,
 ) {
+    val hasLocation: Boolean get() = lat != null && lon != null
     val band: Int get() = DealStats.areaBand(areaM2)
     val codes: List<String> get() = (listOf(regionCode) + nearby.map { it.code }).distinct()
     val shortName: String get() = aptName.substringBefore("(").removeSuffix("아파트").ifBlank { aptName }
@@ -37,6 +41,8 @@ data class HomeConfig(
         .put("areaM2", areaM2).put("label", label)
         .put("purchase", purchaseManwon ?: JSONObject.NULL)
         .put("nearby", JSONArray(nearby.map { JSONObject().put("code", it.code).put("dong", it.dong) }))
+        .put("lat", lat ?: JSONObject.NULL)
+        .put("lon", lon ?: JSONObject.NULL)
         .toString()
 
     companion object {
@@ -51,6 +57,8 @@ data class HomeConfig(
                 label = o.optString("label"),
                 nearby = (0 until arr.length()).map { arr.getJSONObject(it).let { n -> NearbyArea(n.getString("code"), n.getString("dong")) } },
                 purchaseManwon = if (o.isNull("purchase")) null else o.optInt("purchase"),
+                lat = if (o.isNull("lat")) null else o.optDouble("lat").takeIf { !it.isNaN() },
+                lon = if (o.isNull("lon")) null else o.optDouble("lon").takeIf { !it.isNaN() },
             )
         }.getOrNull()
 
@@ -72,8 +80,12 @@ class HomeStore(context: Context) {
 
     /** Seeds the home once from build-time values (local builds only; CI builds have none). */
     fun seed(c: HomeConfig?) {
-        if (c == null || prefs.getBoolean("seeded", false)) return
-        if (load() == null) save(c)
+        if (c == null) return
+        val cur = load()
+        // Later builds may add a location for the same complex; fill it in without touching other settings.
+        if (cur != null && !cur.hasLocation && c.hasLocation && cur.aptSeq == c.aptSeq) save(cur.copy(lat = c.lat, lon = c.lon))
+        if (prefs.getBoolean("seeded", false)) return
+        if (cur == null) save(c)
         prefs.edit().putBoolean("seeded", true).apply()
     }
 

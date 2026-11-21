@@ -212,6 +212,8 @@ private fun SectionScreen(
     var myHomeOpen by rememberSaveable { mutableStateOf(false) }
     var assetOpen by rememberSaveable { mutableStateOf(false) }
     var bonusOpen by rememberSaveable { mutableStateOf(false) }
+    var devOpen by rememberSaveable { mutableStateOf(false) }
+    if (devOpen) DevelopmentDialog(feed.developments, x.home.config, onDismiss = { devOpen = false }, onHomeChanged = x.onHomeChanged)
     if (bonusOpen) BonusDialog(feed.bonusYears, loader) { bonusOpen = false }
     if (realPriceOpen) RealPriceDialog(onDismiss = { realPriceOpen = false }, onHomeSet = x.onHomeChanged)
     if (myHomeOpen && x.home.config != null) {
@@ -261,6 +263,9 @@ private fun SectionScreen(
         if (section.id == "realestate") {
             item(key = "myhome") {
                 MyHomeCard(x.home, onOpen = { x.onHomeOpened(); myHomeOpen = true }, onSetup = { realPriceOpen = true })
+            }
+            if (feed.developments.isNotEmpty()) {
+                item(key = "developments") { DevelopmentEntry(feed.developments, x.home.config) { devOpen = true } }
             }
         }
         item(key = "headline") { HeadlineCard(section.headline, section.summary) }

@@ -236,6 +236,22 @@ class FeaturesTest {
         compose.onRoot().captureRoboImage("build/screens/15_bonus.png")
     }
 
+    @Test fun developments() {
+        val devs = FeedParser.parse(assetFeed()).developments
+        assertTrue(devs.size >= 10)
+        assertTrue(devs.any { it.tier == "S" && it.good } && devs.any { !it.good })
+        val gtx = devs.first { it.id == "gtx-c-suwon" }
+        // 수원역 to 수원시청 area is roughly 2.5km.
+        val km = com.ohsung.marketbrief.data.Geo.km(37.2634, 127.0317, gtx.lat, gtx.lon)
+        assertTrue("km=$km", km in 2.0..3.2)
+        val here = home.copy(lat = 37.2700, lon = 127.0150)
+        compose.setContent {
+            MarketTheme { Surface { com.ohsung.marketbrief.ui.DevelopmentContent(devs, here, {}, {}) } }
+        }
+        compose.waitForIdle()
+        compose.onRoot().captureRoboImage("build/screens/16_developments.png")
+    }
+
     @Test fun assetScreen() {
         val ctx = ApplicationProvider.getApplicationContext<android.content.Context>()
         HomeStore(ctx).assets = AssetInput(home = 60000, homeChip = true, loan = 35000, chipStocks = 8000, companyStock = 12000, otherStocks = 3000, cash = 7000, incomeChip = true)

@@ -88,6 +88,8 @@ class MainViewModel(private val app: Application) : AndroidViewModel(app) {
             areaM2 = area,
             label = BuildConfig.MYHOME_LABEL,
             nearby = HomeConfig.parseNearby(BuildConfig.MYHOME_NEARBY),
+            lat = BuildConfig.MYHOME_LAT.toDoubleOrNull(),
+            lon = BuildConfig.MYHOME_LON.toDoubleOrNull(),
         )
     }
 

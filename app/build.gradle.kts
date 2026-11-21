@@ -27,7 +27,7 @@ android {
         val molitKey = System.getenv("MOLIT_KEY") ?: localProps.getProperty("molit.key", "")
         buildConfigField("String", "MOLIT_KEY", "\"$molitKey\"")
         // The owner's home, for personal builds only. Kept in local.properties (git-ignored), never in the repo.
-        listOf("region", "seq", "name", "area", "label", "nearby").forEach { k ->
+        listOf("region", "seq", "name", "area", "label", "nearby", "lat", "lon").forEach { k ->
             val v = localProps.getProperty("myhome.$k", "").replace("\\", "").replace("\"", "")
             buildConfigField("String", "MYHOME_${k.uppercase()}", "\"$v\"")
         }
