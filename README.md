@@ -8,6 +8,7 @@
 |---|---|
 | `app/` | 안드로이드 앱 (Kotlin + Jetpack Compose) |
 | `feed/latest.json` | 매일 갱신되는 브리핑 데이터. 앱이 GitHub에서 직접 읽어요 |
+| `scripts/molit_stats.py` | 국토교통부 실거래가 API로 반도체 벨트 아파트 통계(표·차트)를 만들어 피드에 넣어요. 인증키는 환경변수 `MOLIT_KEY`로만 받아요 |
 | `.github/workflows/build.yml` | `main`에 앱 코드가 바뀌면 APK를 빌드해 Releases에 올려요 |
 | `keystore/dev.jks` | 개인 설치용 개발 서명 키 (공개돼도 되는 용도, Play 스토어용 아님) |
 
@@ -15,6 +16,7 @@
 
 - **요약·호재/악재·전망·이슈**: `feed/latest.json`. 앱을 열거나 당겨서 새로고침하면 최신 파일을 받아요.
 - **실시간 시세 차트**: 앱이 Yahoo Finance 차트 API에서 직접 받아요 (지연될 수 있음).
+- **아파트 실거래가 검색**: 부동산 탭에서 국토교통부 실거래가 API를 앱이 직접 호출해요. 인증키는 기기에만 저장되고 이 저장소에는 없어요 (로컬 빌드 때 `local.properties`의 `molit.key`로 넣을 수 있음).
 - 전망은 증권사·연구기관 의견을 출처와 함께 요약한 것이며 투자 권유가 아니에요.
 
 ## 오늘의 방향 (compass)
@@ -46,6 +48,7 @@
       "tickers": [{"symbol": "005930.KS", "name": "삼성전자"}],
       "charts": [{"title": "", "unit": "%|$", "type": "line|bar", "note": "", "points": [{"x": "", "y": 0}]}],
       "table": {"title": "", "columns": [], "rows": [[]], "note": ""},
+      "tables": [{"title": "", "columns": [], "rows": [[]], "note": ""}],
       "outlook": [{"source": "", "text": "", "url": ""}],
       "positives": [{"title": "", "detail": "", "source": "", "url": ""}],
       "negatives": [...],
