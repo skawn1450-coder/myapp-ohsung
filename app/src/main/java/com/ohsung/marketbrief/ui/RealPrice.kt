@@ -56,6 +56,9 @@ import com.ohsung.marketbrief.data.ChartPoint
 import com.ohsung.marketbrief.data.Complex
 import com.ohsung.marketbrief.data.Deal
 import com.ohsung.marketbrief.data.DealStats
+import com.ohsung.marketbrief.data.HomeConfig
+import com.ohsung.marketbrief.data.HomeStore
+import com.ohsung.marketbrief.data.NearbyArea
 import com.ohsung.marketbrief.data.MolitRepository
 import com.ohsung.marketbrief.data.Region
 import com.ohsung.marketbrief.data.formatManwon
@@ -92,7 +95,7 @@ fun RealPriceEntry(onClick: () -> Unit) {
 }
 
 @Composable
-fun RealPriceDialog(onDismiss: () -> Unit) {
+fun RealPriceDialog(onDismiss: () -> Unit, onHomeSet: (() -> Unit)? = null) {
     val context = LocalContext.current
     val repo = remember { MolitRepository(context.applicationContext) }
     val regions = remember { repo.regions() }
@@ -106,8 +109,15 @@ fun RealPriceDialog(onDismiss: () -> Unit) {
                 regions = regions,
                 hasKey = key.isNotBlank(),
                 onSaveKey = { repo.apiKey = it; key = it },
-                search = { r, m, p -> repo.search(r, m, p) },
+                search = { r, m, p -> repo.search(r, m, p, includeCanceled = true) },
                 onClose = onDismiss,
+                onSetHome = onHomeSet?.let { done ->
+                    { cfg: HomeConfig ->
+                        HomeStore(context.applicationContext).run { clear(); save(cfg) }
+                        done()
+                        onDismiss()
+                    }
+                },
                 modifier = Modifier.statusBarsPadding().navigationBarsPadding().imePadding(),
             )
         }
@@ -124,6 +134,7 @@ fun RealPriceContent(
     modifier: Modifier = Modifier,
     initialDeals: List<Deal>? = null,
     initialComplex: Int? = null,
+    onSetHome: ((HomeConfig) -> Unit)? = null,
 ) {
     val scope = rememberCoroutineScope()
     var regionCode by rememberSaveable { mutableStateOf("41597") }
@@ -171,7 +182,14 @@ fun RealPriceContent(
         }
 
         if (picked != null) {
-            ComplexDetail(picked)
+            ComplexDetail(
+                picked,
+                onSetHome?.let { save ->
+                    { area: Double ->
+                        save(HomeConfig(region.code, picked.aptSeq, picked.name, area, nearby = listOf(NearbyArea(region.code, picked.dong))))
+                    }
+                },
+            )
             return@Column
         }
 
@@ -240,7 +258,7 @@ fun RealPriceContent(
 }
 
 @Composable
-private fun RegionPicker(regions: List<Region>, current: Region, onPick: (Region) -> Unit) {
+internal fun RegionPicker(regions: List<Region>, current: Region, onPick: (Region) -> Unit) {
     var open by remember { mutableStateOf(false) }
     Box {
         Surface(
@@ -297,10 +315,20 @@ private fun ComplexRow(c: Complex, onClick: () -> Unit) {
 }
 
 @Composable
-private fun ComplexDetail(c: Complex) {
+private fun ComplexDetail(c: Complex, onSetHome: ((Double) -> Unit)? = null) {
     val bands = remember(c) { c.deals.groupBy { DealStats.areaBand(it.areaM2) }.toList().sortedByDescending { it.second.size } }
     var band by remember(c) { mutableIntStateOf(bands.first().first) }
     val ds = bands.first { it.first == band }.second
+    val withCanceled = remember(c, band) { DealStats.newestFirst(ds + c.canceled.filter { DealStats.areaBand(it.areaM2) == band }) }
+    val highs = remember(c) { DealStats.newHighs(c.deals) }
+    var picking by remember { mutableStateOf(false) }
+    if (picking && onSetHome != null) {
+        SetHomePicker(
+            areas = withCanceled.map { it.areaM2 }.distinct().sorted(),
+            onPick = { picking = false; onSetHome(it) },
+            onDismiss = { picking = false },
+        )
+    }
     val series = remember(c, band) {
         ds.groupBy { it.ym }.toSortedMap().map { (ym, list) ->
             ChartPoint("%d.%02d".format(ym.year % 100, ym.monthValue), DealStats.median(list.map { it.priceManwon }) / 10000.0)
@@ -309,11 +337,16 @@ private fun ComplexDetail(c: Complex) {
     val mc = LocalMarketColors.current
     LazyColumn(contentPadding = PaddingValues(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
         item {
-            Text(
-                "${c.dong} · ${c.buildYear}년 준공 · 최근 거래 ${c.deals.size}건",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(
+                    "${c.dong} · ${c.buildYear}년 준공 · 최근 거래 ${c.deals.size}건" +
+                        if (c.canceled.isNotEmpty()) " · 해제 ${c.canceled.size}건" else "",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.weight(1f),
+                )
+                if (onSetHome != null) TextButton(onClick = { picking = true }) { Text("내 단지로 설정") }
+            }
         }
         item {
             Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
@@ -346,19 +379,11 @@ private fun ComplexDetail(c: Complex) {
         item {
             Card {
                 Text("거래 내역", style = MaterialTheme.typography.titleSmall)
+                Text("신고가 = 이 기간 같은 평형 최고가 경신 · 해제 = 신고 후 취소된 거래", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 Spacer(Modifier.height(6.dp))
-                ds.forEachIndexed { i, d ->
+                withCanceled.forEachIndexed { i, d ->
                     if (i > 0) HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
-                    Row(Modifier.fillMaxWidth().padding(vertical = 10.dp), verticalAlignment = Alignment.CenterVertically) {
-                        Text(d.dateLabel, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(1f))
-                        Text("${d.floor}층", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.weight(0.6f))
-                        Text(
-                            formatManwon(d.priceManwon),
-                            style = MaterialTheme.typography.titleSmall,
-                            modifier = Modifier.weight(1f),
-                            textAlign = androidx.compose.ui.text.style.TextAlign.End,
-                        )
-                    }
+                    DealRow(d, sameType = false, newHigh = d.key in highs)
                 }
             }
         }

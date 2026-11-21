@@ -26,6 +26,8 @@ REGIONS = [
     ("이천", "41500"),
     ("용인 처인", "41461"),
 ]
+TREND_REGIONS = ["화성 동탄", "수원 영통", "용인 기흥"]
+TREND_TITLE = "반도체 벨트 집값"
 TABLE_TITLE = "반도체 벨트 아파트 실거래"
 CHART_TITLE = "반도체 벨트 전용 3.3㎡당 중위 실거래가"
 
@@ -108,6 +110,36 @@ def main():
         "points": points,
     }
     section["charts"] = [c for c in section.get("charts", []) if not c["title"].startswith(CHART_TITLE)] + [chart]
+
+    # Monthly trend over the last 12 settled months, as an index (first month = 100).
+    # The app draws SK hynix's monthly close on top (live), to see whether they move together.
+    months = [month_add(settled, -k) for k in range(11, -1, -1)]
+    series = []
+    for name in TREND_REGIONS:
+        code = dict(REGIONS)[name]
+        meds = []
+        for m in months:
+            vals = fetch(key, code, ym(m))
+            meds.append(statistics.median(vals) if len(vals) >= 5 else None)
+            time.sleep(0.2)
+        base = next((v for v in meds if v), None)
+        if not base:
+            continue
+        series.append({
+            "name": name.split()[-1],
+            "points": [{"x": f"{m.year % 100:02d}.{m.month:02d}", "y": round(v / base * 100, 1)} for m, v in zip(months, meds) if v],
+        })
+    if series:
+        trend = {
+            "title": f"{TREND_TITLE} vs SK하이닉스 (첫 달=100)",
+            "unit": "", "type": "multi",
+            "note": f"국토교통부 실거래 3.3㎡당 중위가, {months[0].year % 100}.{months[0].month:02d}~{settled.year % 100}.{settled.month:02d} 확정분. "
+                    "점선은 SK하이닉스 월말 종가예요. 같이 움직이는지 보는 용도이고 원인과 결과를 뜻하지는 않아요.",
+            "points": [],
+            "series": series,
+            "overlay": {"symbol": "000660.KS", "name": "SK하이닉스 주가"},
+        }
+        section["charts"] = [c for c in section["charts"] if not c["title"].startswith(TREND_TITLE)] + [trend]
     json.dump(feed, open(path, "w", encoding="utf-8"), ensure_ascii=False, indent=2)
     print(json.dumps(table, ensure_ascii=False, indent=1))
 

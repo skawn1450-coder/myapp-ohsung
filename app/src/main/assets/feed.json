@@ -140,6 +140,178 @@
               "y": 1752
             }
           ]
+        },
+        {
+          "title": "반도체 벨트 집값 vs SK하이닉스 (첫 달=100)",
+          "unit": "",
+          "type": "multi",
+          "note": "국토교통부 실거래 3.3㎡당 중위가, 25.10~26.09 확정분. 점선은 SK하이닉스 월말 종가예요. 같이 움직이는지 보는 용도이고 원인과 결과를 뜻하지는 않아요.",
+          "points": [],
+          "series": [
+            {
+              "name": "동탄",
+              "points": [
+                {
+                  "x": "25.10",
+                  "y": 100.0
+                },
+                {
+                  "x": "25.11",
+                  "y": 93.8
+                },
+                {
+                  "x": "25.12",
+                  "y": 91.2
+                },
+                {
+                  "x": "26.01",
+                  "y": 100.5
+                },
+                {
+                  "x": "26.02",
+                  "y": 94.4
+                },
+                {
+                  "x": "26.03",
+                  "y": 95.7
+                },
+                {
+                  "x": "26.04",
+                  "y": 92.0
+                },
+                {
+                  "x": "26.05",
+                  "y": 97.6
+                },
+                {
+                  "x": "26.06",
+                  "y": 94.9
+                },
+                {
+                  "x": "26.07",
+                  "y": 98.2
+                },
+                {
+                  "x": "26.08",
+                  "y": 102.9
+                },
+                {
+                  "x": "26.09",
+                  "y": 107.4
+                }
+              ]
+            },
+            {
+              "name": "영통",
+              "points": [
+                {
+                  "x": "25.10",
+                  "y": 100.0
+                },
+                {
+                  "x": "25.11",
+                  "y": 100.4
+                },
+                {
+                  "x": "25.12",
+                  "y": 95.3
+                },
+                {
+                  "x": "26.01",
+                  "y": 94.7
+                },
+                {
+                  "x": "26.02",
+                  "y": 94.5
+                },
+                {
+                  "x": "26.03",
+                  "y": 89.0
+                },
+                {
+                  "x": "26.04",
+                  "y": 89.7
+                },
+                {
+                  "x": "26.05",
+                  "y": 92.5
+                },
+                {
+                  "x": "26.06",
+                  "y": 99.6
+                },
+                {
+                  "x": "26.07",
+                  "y": 98.1
+                },
+                {
+                  "x": "26.08",
+                  "y": 98.3
+                },
+                {
+                  "x": "26.09",
+                  "y": 99.9
+                }
+              ]
+            },
+            {
+              "name": "기흥",
+              "points": [
+                {
+                  "x": "25.10",
+                  "y": 100.0
+                },
+                {
+                  "x": "25.11",
+                  "y": 96.0
+                },
+                {
+                  "x": "25.12",
+                  "y": 93.3
+                },
+                {
+                  "x": "26.01",
+                  "y": 94.8
+                },
+                {
+                  "x": "26.02",
+                  "y": 94.9
+                },
+                {
+                  "x": "26.03",
+                  "y": 88.7
+                },
+                {
+                  "x": "26.04",
+                  "y": 89.2
+                },
+                {
+                  "x": "26.05",
+                  "y": 92.7
+                },
+                {
+                  "x": "26.06",
+                  "y": 96.3
+                },
+                {
+                  "x": "26.07",
+                  "y": 96.5
+                },
+                {
+                  "x": "26.08",
+                  "y": 83.6
+                },
+                {
+                  "x": "26.09",
+                  "y": 87.8
+                }
+              ]
+            }
+          ],
+          "overlay": {
+            "symbol": "000660.KS",
+            "name": "SK하이닉스 주가"
+          }
         }
       ],
       "table": {
@@ -845,7 +1017,357 @@
           "text": "반도체 업계에 있다면 월급·성과급·자사주·집값이 같은 업황에 묶여 있어요. 자산이 한쪽으로 쏠렸는지 점검해 보세요.",
           "url": ""
         }
+      ],
+      "tables": [
+        {
+          "title": "전망 적중 기록",
+          "columns": [
+            "누가 · 언제",
+            "무엇을",
+            "결과"
+          ],
+          "rows": [
+            [
+              "마이크론 (9/30)",
+              "1분기 매출 615억±15억 달러",
+              "12/18 발표 대기"
+            ],
+            [
+              "트렌드포스 (9/30)",
+              "4분기 범용 D램 계약가 +10~15%",
+              "1월 초 확인"
+            ],
+            [
+              "트렌드포스 (9/30)",
+              "4분기 낸드 계약가 +15~20%",
+              "1월 초 확인"
+            ],
+            [
+              "KB증권 (11/2)",
+              "SK하이닉스 4분기 영업이익 104조원",
+              "1월 말 실적 발표"
+            ],
+            [
+              "건산연 (11/12)",
+              "2027년 수도권 집값 +3.0%",
+              "2028년 1월 확인"
+            ]
+          ],
+          "note": "기관이 숫자로 내놓은 전망을 모아 두고, 결과가 나오면 매일 아침 갱신 때 맞았는지 채워요. ✓ = 전망 범위 안, ✗ = 범위 밖."
+        }
       ]
+    }
+  ],
+  "events": [
+    {
+      "date": "2026-11-20",
+      "time": "",
+      "title": "엔비디아 3분기(FY27) 실적",
+      "category": "실적",
+      "tabs": [
+        "stocks",
+        "memory"
+      ],
+      "status": "확정",
+      "source": "엔비디아",
+      "url": "https://investor.nvidia.com",
+      "result": "매출 1,158억 달러로 시장 예상을 웃돌았지만 다음 날 코스피는 5% 넘게 빠졌어요.",
+      "note": ""
+    },
+    {
+      "date": "2026-11-26",
+      "time": "오전",
+      "title": "한은 금통위 기준금리 결정 (올해 마지막)",
+      "category": "금리",
+      "tabs": [
+        "realestate",
+        "stocks",
+        "issues"
+      ],
+      "status": "확정",
+      "source": "한국은행 (SBS Biz 보도)",
+      "url": "https://biz.sbs.co.kr/amp/article/20000343023",
+      "result": "",
+      "note": "현재 기준금리 3.00%"
+    },
+    {
+      "date": "2026-11-30",
+      "time": "",
+      "title": "D램·낸드 11월 고정거래가 발표",
+      "category": "반도체",
+      "tabs": [
+        "memory"
+      ],
+      "status": "예상",
+      "source": "트렌드포스(D램익스체인지)",
+      "url": "",
+      "result": "",
+      "note": "보통 매달 마지막 영업일에 나와요"
+    },
+    {
+      "date": "2026-12-01",
+      "time": "11:00",
+      "title": "11월 수출입동향 (반도체 수출 포함)",
+      "category": "지표",
+      "tabs": [
+        "memory",
+        "stocks",
+        "issues"
+      ],
+      "status": "예상",
+      "source": "산업통상부",
+      "url": "",
+      "result": "",
+      "note": "매달 1일 11시 발표 관행"
+    },
+    {
+      "date": "2026-12-04",
+      "time": "22:30",
+      "title": "미국 11월 고용보고서",
+      "category": "지표",
+      "tabs": [
+        "stocks",
+        "issues"
+      ],
+      "status": "확정",
+      "source": "미국 노동통계국(BLS)",
+      "url": "https://www.bls.gov/schedule/2026/12_sched_list.htm",
+      "result": "",
+      "note": ""
+    },
+    {
+      "date": "2026-12-10",
+      "time": "04:00",
+      "title": "FOMC 금리 결정 (12월 8~9일 회의)",
+      "category": "금리",
+      "tabs": [
+        "stocks",
+        "realestate",
+        "memory",
+        "issues"
+      ],
+      "status": "확정",
+      "source": "미 연준",
+      "url": "https://www.federalreserve.gov/newsevents/2026-December.htm",
+      "result": "",
+      "note": "경제전망·점도표 함께 발표"
+    },
+    {
+      "date": "2026-12-10",
+      "time": "22:30",
+      "title": "미국 11월 소비자물가(CPI)",
+      "category": "물가",
+      "tabs": [
+        "stocks",
+        "issues"
+      ],
+      "status": "확정",
+      "source": "미국 노동통계국(BLS)",
+      "url": "https://www.bls.gov/schedule/news_release/cpi.htm",
+      "result": "",
+      "note": ""
+    },
+    {
+      "date": "2026-12-18",
+      "time": "06:30",
+      "title": "마이크론 1분기(FY27) 실적 발표",
+      "category": "실적",
+      "tabs": [
+        "memory",
+        "stocks"
+      ],
+      "status": "확정",
+      "source": "마이크론 보도자료",
+      "url": "https://investors.micron.com/",
+      "result": "",
+      "note": "회사 가이던스: 매출 615억±15억 달러"
+    },
+    {
+      "date": "2027-01-07",
+      "time": "",
+      "title": "CES 2027 개막 (현지 1월 6~9일)",
+      "category": "행사",
+      "tabs": [
+        "memory",
+        "stocks"
+      ],
+      "status": "확정",
+      "source": "CES 주최 CTA",
+      "url": "https://www.ces.tech/about-ces/about-ces/",
+      "result": "",
+      "note": ""
+    },
+    {
+      "date": "2027-01-07",
+      "time": "",
+      "title": "삼성전자 4분기 잠정실적",
+      "category": "실적",
+      "tabs": [
+        "memory",
+        "stocks"
+      ],
+      "status": "예상",
+      "source": "삼성전자 (지난해 1월 8일 발표)",
+      "url": "https://www.fnnews.com/news/202601080754002781",
+      "result": "",
+      "note": "회사가 날짜를 미리 알리지 않아요"
+    },
+    {
+      "date": "2027-01-13",
+      "time": "22:30",
+      "title": "미국 12월 소비자물가(CPI)",
+      "category": "물가",
+      "tabs": [
+        "stocks",
+        "issues"
+      ],
+      "status": "확정",
+      "source": "미국 노동통계국(BLS)",
+      "url": "https://www.bls.gov/schedule/news_release/cpi.htm",
+      "result": "",
+      "note": ""
+    },
+    {
+      "date": "2027-01-14",
+      "time": "오전",
+      "title": "한은 금통위 기준금리 결정 (2027년 첫 회의)",
+      "category": "금리",
+      "tabs": [
+        "realestate",
+        "stocks",
+        "issues"
+      ],
+      "status": "확정",
+      "source": "한국은행 (SBS Biz 보도)",
+      "url": "https://biz.sbs.co.kr/amp/article/20000343023",
+      "result": "",
+      "note": ""
+    },
+    {
+      "date": "2027-01-28",
+      "time": "04:00",
+      "title": "FOMC 금리 결정 (1월 26~27일 회의)",
+      "category": "금리",
+      "tabs": [
+        "stocks",
+        "realestate",
+        "memory",
+        "issues"
+      ],
+      "status": "확정",
+      "source": "미 연준 (잠정 일정)",
+      "url": "https://www.federalreserve.gov/newsevents/pressreleases/monetary20261112a.htm",
+      "result": "",
+      "note": ""
+    },
+    {
+      "date": "2027-01-28",
+      "time": "",
+      "title": "SK하이닉스 4분기 실적",
+      "category": "실적",
+      "tabs": [
+        "memory",
+        "stocks"
+      ],
+      "status": "예상",
+      "source": "SK하이닉스 (지난해 1월 28일 발표)",
+      "url": "https://biz.sbs.co.kr/amp/article/20000288049",
+      "result": "",
+      "note": ""
+    },
+    {
+      "date": "2027-02-11",
+      "time": "22:30",
+      "title": "미국 1월 소비자물가(CPI)",
+      "category": "물가",
+      "tabs": [
+        "stocks",
+        "issues"
+      ],
+      "status": "확정",
+      "source": "미국 노동통계국(BLS)",
+      "url": "https://www.bls.gov/schedule/news_release/cpi.htm",
+      "result": "",
+      "note": ""
+    },
+    {
+      "date": "2027-02-25",
+      "time": "오전",
+      "title": "한은 금통위 기준금리 결정",
+      "category": "금리",
+      "tabs": [
+        "realestate",
+        "stocks",
+        "issues"
+      ],
+      "status": "확정",
+      "source": "한국은행 (SBS Biz 보도)",
+      "url": "https://biz.sbs.co.kr/amp/article/20000343023",
+      "result": "",
+      "note": ""
+    },
+    {
+      "date": "2027-02-25",
+      "time": "06:20",
+      "title": "엔비디아 4분기(FY27) 실적",
+      "category": "실적",
+      "tabs": [
+        "memory",
+        "stocks"
+      ],
+      "status": "예상",
+      "source": "엔비디아 (지난해 미국 2월 25일 발표)",
+      "url": "https://investor.nvidia.com",
+      "result": "",
+      "note": ""
+    },
+    {
+      "date": "2027-03-10",
+      "time": "22:30",
+      "title": "미국 2월 소비자물가(CPI)",
+      "category": "물가",
+      "tabs": [
+        "stocks",
+        "issues"
+      ],
+      "status": "확정",
+      "source": "미국 노동통계국(BLS)",
+      "url": "https://www.bls.gov/schedule/news_release/cpi.htm",
+      "result": "",
+      "note": ""
+    },
+    {
+      "date": "2027-03-18",
+      "time": "03:00",
+      "title": "FOMC 금리 결정 (3월 16~17일 회의)",
+      "category": "금리",
+      "tabs": [
+        "stocks",
+        "realestate",
+        "memory",
+        "issues"
+      ],
+      "status": "확정",
+      "source": "미 연준 (잠정 일정)",
+      "url": "https://www.federalreserve.gov/newsevents/pressreleases/monetary20261112a.htm",
+      "result": "",
+      "note": ""
+    },
+    {
+      "date": "2028-04-12",
+      "time": "",
+      "title": "제23대 국회의원 선거",
+      "category": "선거",
+      "tabs": [
+        "realestate",
+        "stocks",
+        "issues"
+      ],
+      "status": "확정",
+      "source": "중앙선거관리위원회",
+      "url": "https://nec.go.kr/site/abroaden/03/10303000000002020040905.jsp",
+      "result": "",
+      "note": ""
     }
   ]
 }

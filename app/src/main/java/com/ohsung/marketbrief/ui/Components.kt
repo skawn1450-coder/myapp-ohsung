@@ -147,7 +147,7 @@ private fun MetricTile(m: Metric, modifier: Modifier) {
 @Composable
 fun RangeChips(selected: ChartRange, onSelect: (ChartRange) -> Unit) {
     Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-        ChartRange.entries.forEach { r ->
+        ChartRange.entries.filter { it != ChartRange.Y2 }.forEach { r ->
             val on = r == selected
             Text(
                 r.label,
@@ -233,7 +233,7 @@ fun formatChange(pct: Double): String {
 }
 
 @Composable
-fun SeriesCard(series: ChartSeries) {
+fun SeriesCard(series: ChartSeries, loader: QuoteLoader? = null) {
     val mc = LocalMarketColors.current
     Card {
         Text(series.title, style = MaterialTheme.typography.titleSmall)
@@ -241,8 +241,49 @@ fun SeriesCard(series: ChartSeries) {
             Text(series.note, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
         Spacer(Modifier.height(14.dp))
-        SeriesChart(series.points, series.type, series.unit, mc.up, mc.down, Modifier.fillMaxWidth().height(170.dp))
+        if (series.type == "multi") {
+            MultiSeriesBody(series, loader)
+        } else {
+            SeriesChart(series.points, series.type, series.unit, mc.up, mc.down, Modifier.fillMaxWidth().height(170.dp))
+        }
     }
+}
+
+@Composable
+private fun MultiSeriesBody(series: ChartSeries, loader: QuoteLoader?) {
+    val xLabels = series.series.flatMap { s -> s.points.map { it.x } }.distinct().sorted()
+    // Optional live overlay: monthly closes of a stock, indexed to 100 at the first month like the other lines.
+    val overlay by produceState<List<com.ohsung.marketbrief.data.ChartPoint>>(emptyList(), series.overlay, loader) {
+        val t = series.overlay ?: return@produceState
+        val q = runCatching { loader?.invoke(t.symbol, ChartRange.Y2) }.getOrNull() ?: return@produceState
+        value = monthlyIndex(q, xLabels)
+    }
+    val lines = series.series.mapIndexed { i, s -> ChartLine(s.name, s.points, SeriesPalette[i % SeriesPalette.size]) } +
+        listOfNotNull(series.overlay?.takeIf { overlay.size >= 2 }?.let { ChartLine(it.name + " (별도 눈금)", overlay, SeriesPalette.last(), dashed = true, secondary = true) })
+    MultiLineChart(lines, xLabels, Modifier.fillMaxWidth().height(190.dp))
+    Spacer(Modifier.height(8.dp))
+    Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+        lines.forEach { l ->
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Box(Modifier.width(14.dp).height(3.dp).clip(RoundedCornerShape(2.dp)).background(l.color.copy(alpha = if (l.dashed) 0.6f else 1f)))
+                Spacer(Modifier.width(5.dp))
+                Text(l.name, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+        }
+    }
+}
+
+/** Last close of each "YY.MM" month in [labels], indexed so the first available month = 100. */
+internal fun monthlyIndex(q: Quote, labels: List<String>): List<com.ohsung.marketbrief.data.ChartPoint> {
+    val zone = java.time.ZoneId.of("Asia/Seoul")
+    val byMonth = HashMap<String, Double>()
+    q.times.zip(q.closes).forEach { (t, c) ->
+        val d = java.time.Instant.ofEpochSecond(t).atZone(zone)
+        byMonth["%02d.%02d".format(d.year % 100, d.monthValue)] = c
+    }
+    val raw = labels.mapNotNull { l -> byMonth[l]?.let { l to it } }
+    val base = raw.firstOrNull()?.second ?: return emptyList()
+    return raw.map { (l, v) -> com.ohsung.marketbrief.data.ChartPoint(l, v / base * 100) }
 }
 
 @Composable

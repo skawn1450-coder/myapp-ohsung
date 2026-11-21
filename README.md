@@ -17,6 +17,10 @@
 - **요약·호재/악재·전망·이슈**: `feed/latest.json`. 앱을 열거나 당겨서 새로고침하면 최신 파일을 받아요.
 - **실시간 시세 차트**: 앱이 Yahoo Finance 차트 API에서 직접 받아요 (지연될 수 있음).
 - **아파트 실거래가 검색**: 부동산 탭에서 국토교통부 실거래가 API를 앱이 직접 호출해요. 인증키는 기기에만 저장되고 이 저장소에는 없어요 (로컬 빌드 때 `local.properties`의 `molit.key`로 넣을 수 있음).
+- **내 단지**: 부동산 탭 맨 위. 단지·타입(전용면적)·비교할 동네·매수가는 폰에만 저장하고, 실거래·전월세 자료를 폰에서 직접 받아 계산해요(월별 중위가, 층별, 신고가·해제 표시, 그 일대 비교, 거래량, 전세가율, 대출 이자 계산). 이 저장소에는 개인 정보가 없어요.
+- **알림·위젯**: 매일 7시 반쯤 폰이 직접 확인해서 새 브리핑과 새 실거래(우리 단지 + 비교 동네 같은 평형)를 알려 줘요. 홈 화면 위젯은 내 단지 최근 거래·코스피·D램 현물가를 보여 줘요.
+- **일정 탭**: 피드의 `events`로 그리는 달력. 탭마다 위쪽에 관련 일정 D-day가 떠요.
+- **지난 브리핑**: 위쪽 시계 아이콘. `feed/latest.json`의 커밋 이력을 그대로 불러와요.
 - 전망은 증권사·연구기관 의견을 출처와 함께 요약한 것이며 투자 권유가 아니에요.
 
 ## 오늘의 방향 (compass)
@@ -37,6 +41,8 @@
 ```json
 {
   "updatedLabel": "11월 21일(토) 오후",
+  "events": [{"date": "2026-12-10", "time": "04:00", "title": "", "category": "실적|금리|물가|지표|반도체|부동산|정책|선거|행사",
+              "tabs": ["stocks"], "status": "확정|예상", "source": "", "url": "", "result": "", "note": ""}],
   "sections": [
     {
       "id": "realestate | stocks | memory | issues",
@@ -46,7 +52,8 @@
       "compass": [{"kind": "caution|history|action", "text": "한 문장", "url": "출처(선택)"}],
       "metrics": [{"label": "", "value": "", "sub": "", "trend": "up|down|flat"}],
       "tickers": [{"symbol": "005930.KS", "name": "삼성전자"}],
-      "charts": [{"title": "", "unit": "%|$", "type": "line|bar", "note": "", "points": [{"x": "", "y": 0}]}],
+      "charts": [{"title": "", "unit": "%|$|억|건", "type": "line|bar|multi", "note": "", "points": [{"x": "", "y": 0}],
+                  "series": [{"name": "", "points": []}], "overlay": {"symbol": "000660.KS", "name": ""}}],
       "table": {"title": "", "columns": [], "rows": [[]], "note": ""},
       "tables": [{"title": "", "columns": [], "rows": [[]], "note": ""}],
       "outlook": [{"source": "", "text": "", "url": ""}],

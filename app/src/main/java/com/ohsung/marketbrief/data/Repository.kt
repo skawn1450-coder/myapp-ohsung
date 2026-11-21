@@ -66,7 +66,7 @@ data class Quote(
 )
 
 enum class ChartRange(val label: String, val query: String) {
-    M1("1개월", "1mo"), M3("3개월", "3mo"), M6("6개월", "6mo"), Y1("1년", "1y")
+    M1("1개월", "1mo"), M3("3개월", "3mo"), M6("6개월", "6mo"), Y1("1년", "1y"), Y2("2년", "2y")
 }
 
 /** Live prices and daily closes from Yahoo Finance's public chart endpoint. */
@@ -149,5 +149,30 @@ object UpdateChecker {
             }
             AppUpdate(code, "0.1.$code", apk ?: o.optString("html_url"))
         }.getOrNull()
+    }
+}
+
+/** A past daily briefing, from the git history of feed/latest.json. */
+data class ArchiveEntry(val sha: String, val date: java.time.LocalDate, val label: String)
+
+object ArchiveRepository {
+    private const val REPO = "skawn1450-coder/myapp-ohsung"
+
+    /** One entry per day (the last commit of that day, Korea time), newest first. */
+    suspend fun list(): List<ArchiveEntry> = withContext(Dispatchers.IO) {
+        val body = httpGet("https://api.github.com/repos/$REPO/commits?path=feed/latest.json&per_page=60")
+        val arr = org.json.JSONArray(body)
+        val zone = java.time.ZoneId.of("Asia/Seoul")
+        val days = java.time.format.DateTimeFormatter.ofPattern("M월 d일 (E)", java.util.Locale.KOREAN)
+        (0 until arr.length()).mapNotNull { i ->
+            val o = arr.getJSONObject(i)
+            val iso = o.optJSONObject("commit")?.optJSONObject("committer")?.optString("date") ?: return@mapNotNull null
+            val at = runCatching { java.time.Instant.parse(iso).atZone(zone) }.getOrNull() ?: return@mapNotNull null
+            ArchiveEntry(o.getString("sha"), at.toLocalDate(), at.format(days))
+        }.distinctBy { it.date }
+    }
+
+    suspend fun load(sha: String): Feed = withContext(Dispatchers.IO) {
+        FeedParser.parse(httpGet("https://raw.githubusercontent.com/$REPO/$sha/feed/latest.json"))
     }
 }

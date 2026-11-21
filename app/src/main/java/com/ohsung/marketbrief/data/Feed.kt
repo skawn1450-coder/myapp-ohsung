@@ -9,7 +9,27 @@ data class Feed(
     val updatedLabel: String,
     val disclaimer: String,
     val sections: List<Section>,
+    val events: List<MarketEvent> = emptyList(),
 )
+
+/**
+ * A dated event that can move markets (earnings, rate decisions, data releases, elections).
+ * [status] is "확정" when the organizer has announced the date, "예상" when it is inferred from past practice.
+ */
+data class MarketEvent(
+    val date: java.time.LocalDate,
+    val time: String,
+    val title: String,
+    val category: String,
+    val tabs: List<String>,
+    val status: String,
+    val source: String,
+    val url: String,
+    val result: String,
+    val note: String,
+) {
+    val confirmed: Boolean get() = status != "예상"
+}
 
 data class Section(
     val id: String,
@@ -45,7 +65,13 @@ data class ChartSeries(
     val type: String, // "line" or "bar"
     val note: String,
     val points: List<ChartPoint>,
+    /** For type "multi": several named lines on one chart. */
+    val series: List<NamedSeries> = emptyList(),
+    /** Optional live quote drawn on top of a "multi" chart (monthly closes, indexed like the other lines). */
+    val overlay: Ticker? = null,
 )
+
+data class NamedSeries(val name: String, val points: List<ChartPoint>)
 
 data class DataTable(
     val title: String,
@@ -76,8 +102,27 @@ object FeedParser {
             updatedLabel = root.str("updatedLabel"),
             disclaimer = root.str("disclaimer"),
             sections = root.objects("sections").map(::section),
+            events = root.objects("events").mapNotNull(::event).sortedBy { it.date },
         )
     }
+
+    private fun event(o: JSONObject): MarketEvent? {
+        val date = runCatching { java.time.LocalDate.parse(o.str("date")) }.getOrNull() ?: return null
+        return MarketEvent(
+            date = date,
+            time = o.str("time"),
+            title = o.str("title"),
+            category = o.str("category"),
+            tabs = o.strings("tabs"),
+            status = o.str("status").ifEmpty { "확정" },
+            source = o.str("source"),
+            url = o.str("url"),
+            result = o.str("result"),
+            note = o.str("note"),
+        )
+    }
+
+    private fun points(o: JSONObject) = o.objects("points").map { ChartPoint(it.str("x"), it.optDouble("y", 0.0)) }
 
     private fun section(o: JSONObject) = Section(
         id = o.str("id"),
@@ -94,7 +139,9 @@ object FeedParser {
                 unit = c.str("unit"),
                 type = c.str("type").ifEmpty { "line" },
                 note = c.str("note"),
-                points = c.objects("points").map { ChartPoint(it.str("x"), it.optDouble("y", 0.0)) },
+                points = points(c),
+                series = c.objects("series").map { NamedSeries(it.str("name"), points(it)) },
+                overlay = c.optJSONObject("overlay")?.let { Ticker(it.str("symbol"), it.str("name")) },
             )
         },
         table = o.optJSONObject("table")?.let { t ->

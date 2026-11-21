@@ -22,10 +22,15 @@ android {
         // Personal data.go.kr key, injected only into locally built APKs (local.properties / env), never committed.
         val localProps = Properties().apply {
             val f = rootProject.file("local.properties")
-            if (f.exists()) f.inputStream().use { load(it) }
+            if (f.exists()) f.reader(Charsets.UTF_8).use { load(it) }
         }
         val molitKey = System.getenv("MOLIT_KEY") ?: localProps.getProperty("molit.key", "")
         buildConfigField("String", "MOLIT_KEY", "\"$molitKey\"")
+        // The owner's home, for personal builds only. Kept in local.properties (git-ignored), never in the repo.
+        listOf("region", "seq", "name", "area", "label", "nearby").forEach { k ->
+            val v = localProps.getProperty("myhome.$k", "").replace("\\", "").replace("\"", "")
+            buildConfigField("String", "MYHOME_${k.uppercase()}", "\"$v\"")
+        }
     }
 
     signingConfigs {
@@ -88,6 +93,8 @@ dependencies {
     implementation("androidx.compose.material3:material3")
     implementation("androidx.compose.ui:ui-tooling-preview")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.11.0")
+    implementation("androidx.work:work-runtime-ktx:2.10.5")
+    implementation("androidx.core:core-ktx:1.17.0")
     debugImplementation("androidx.compose.ui:ui-tooling")
     debugImplementation("androidx.compose.ui:ui-test-manifest")
 

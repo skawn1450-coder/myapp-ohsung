@@ -41,6 +41,9 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.ohsung.marketbrief.data.AppUpdate
+import com.ohsung.marketbrief.data.ArchiveEntry
+import com.ohsung.marketbrief.data.MarketEvent
+import java.time.LocalDate
 import com.ohsung.marketbrief.data.ChartRange
 import com.ohsung.marketbrief.data.Feed
 import com.ohsung.marketbrief.data.Section
@@ -56,14 +59,32 @@ fun MarketApp(
     loader: QuoteLoader,
     initialTab: Int = 0,
     update: AppUpdate? = null,
+    home: HomeUi = HomeUi(),
+    onHomeChanged: () -> Unit = {},
+    onHomeOpened: () -> Unit = {},
+    archiveLabel: String? = null,
+    archiveLoader: (suspend () -> List<ArchiveEntry>)? = null,
+    onArchivePick: (ArchiveEntry) -> Unit = {},
+    onArchiveExit: () -> Unit = {},
+    today: LocalDate = LocalDate.now(),
+    initialCalendarDate: LocalDate? = null,
 ) {
     var tab by rememberSaveable { mutableIntStateOf(initialTab) }
+    var calSelected by rememberSaveable { mutableStateOf(initialCalendarDate?.toString()) }
+    var archiveOpen by rememberSaveable { mutableStateOf(false) }
     // Each tab keeps its own scroll position; tapping the active tab again scrolls it to the top.
     val tabStates = rememberSaveableStateHolder()
     var reselectCount by rememberSaveable { mutableIntStateOf(0) }
     var askOpen by rememberSaveable { mutableStateOf(false) }
     val sections = feed?.sections.orEmpty()
-    val current = sections.getOrNull(tab.coerceIn(0, (sections.size - 1).coerceAtLeast(0)))
+    val events = feed?.events.orEmpty()
+    val calendarTab = sections.size
+    val onCalendar = sections.isNotEmpty() && tab == calendarTab
+    val current = if (onCalendar) null else sections.getOrNull(tab.coerceIn(0, (sections.size - 1).coerceAtLeast(0)))
+    val openCalendar: (LocalDate) -> Unit = { d -> calSelected = d.toString(); tab = calendarTab }
+    if (archiveOpen && archiveLoader != null) {
+        ArchiveDialog(archiveLoader, onPick = { archiveOpen = false; onArchivePick(it) }, onDismiss = { archiveOpen = false })
+    }
 
     Scaffold(
         containerColor = MaterialTheme.colorScheme.background,
@@ -76,12 +97,17 @@ fun MarketApp(
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
                     Column(Modifier.weight(1f)) {
-                        Text(current?.title ?: "오늘의 시장", style = MaterialTheme.typography.titleLarge)
+                        Text(if (onCalendar) "일정" else current?.title ?: "오늘의 시장", style = MaterialTheme.typography.titleLarge)
                         Text(
                             feed?.updatedLabel?.let { "업데이트 · $it" } ?: "불러오는 중…",
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
+                    }
+                    if (archiveLoader != null && feed != null) {
+                        IconButton(onClick = { archiveOpen = true }, modifier = Modifier.testTag("archive")) {
+                            Icon(AppIcons.History, contentDescription = "지난 브리핑", tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                        }
                     }
                     IconButton(onClick = onRefresh, enabled = !refreshing) {
                         Icon(AppIcons.Refresh, contentDescription = "새로고침", tint = MaterialTheme.colorScheme.onSurfaceVariant)
@@ -113,6 +139,18 @@ fun MarketApp(
                             ),
                         )
                     }
+                    NavigationBarItem(
+                        selected = onCalendar,
+                        modifier = Modifier.testTag("tab-calendar"),
+                        onClick = { if (onCalendar) calSelected = null else tab = calendarTab },
+                        icon = { Icon(AppIcons.Calendar, contentDescription = null, modifier = Modifier.size(22.dp)) },
+                        label = { Text("일정", style = MaterialTheme.typography.labelMedium) },
+                        colors = NavigationBarItemDefaults.colors(
+                            indicatorColor = MaterialTheme.colorScheme.primaryContainer,
+                            selectedIconColor = MaterialTheme.colorScheme.primary,
+                            selectedTextColor = MaterialTheme.colorScheme.primary,
+                        ),
+                    )
                 }
             }
         },
@@ -126,8 +164,14 @@ fun MarketApp(
             modifier = Modifier.fillMaxSize().padding(padding),
         ) {
             when {
+                onCalendar -> tabStates.SaveableStateProvider("calendar") {
+                    CalendarScreen(events, today, calSelected?.let(LocalDate::parse), onSelect = { calSelected = it?.toString() })
+                }
                 current != null -> tabStates.SaveableStateProvider(current.id) {
-                    SectionScreen(current, feed!!, error, refreshKey, reselectCount, loader, update)
+                    SectionScreen(
+                        current, feed!!, error, refreshKey, reselectCount, loader, update,
+                        SectionExtras(events, today, openCalendar, home, onHomeChanged, onHomeOpened, archiveLabel, onArchiveExit),
+                    )
                 }
                 else -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                     if (error != null) {
@@ -141,6 +185,17 @@ fun MarketApp(
     }
 }
 
+private class SectionExtras(
+    val events: List<MarketEvent>,
+    val today: LocalDate,
+    val openCalendar: (LocalDate) -> Unit,
+    val home: HomeUi,
+    val onHomeChanged: () -> Unit,
+    val onHomeOpened: () -> Unit,
+    val archiveLabel: String?,
+    val onArchiveExit: () -> Unit,
+)
+
 @Composable
 private fun SectionScreen(
     section: Section,
@@ -150,10 +205,22 @@ private fun SectionScreen(
     reselectCount: Int,
     loader: QuoteLoader,
     update: AppUpdate?,
+    x: SectionExtras,
 ) {
     var range by rememberSaveable { mutableStateOf(ChartRange.M3) }
     var realPriceOpen by rememberSaveable { mutableStateOf(false) }
-    if (realPriceOpen) RealPriceDialog { realPriceOpen = false }
+    var myHomeOpen by rememberSaveable { mutableStateOf(false) }
+    var assetOpen by rememberSaveable { mutableStateOf(false) }
+    if (realPriceOpen) RealPriceDialog(onDismiss = { realPriceOpen = false }, onHomeSet = x.onHomeChanged)
+    if (myHomeOpen && x.home.config != null) {
+        MyHomeDialog(
+            x.home,
+            onDismiss = { myHomeOpen = false },
+            onChanged = x.onHomeChanged,
+            onChangeHome = { myHomeOpen = false; realPriceOpen = true },
+        )
+    }
+    if (assetOpen) AssetDialog { assetOpen = false }
     val listState = rememberLazyListState()
     // Only react to re-taps made while this tab is showing, not to the count it was opened with.
     var handledReselect by rememberSaveable { mutableIntStateOf(reselectCount) }
@@ -170,6 +237,9 @@ private fun SectionScreen(
         contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
+        if (x.archiveLabel != null) {
+            item(key = "archive") { ArchiveBanner(x.archiveLabel, x.onArchiveExit) }
+        }
         if (update != null) {
             item(key = "update") { UpdateBanner(update) }
         }
@@ -183,12 +253,23 @@ private fun SectionScreen(
                 )
             }
         }
+        if (x.events.isNotEmpty()) {
+            item(key = "upcoming") { UpcomingChips(x.events, section.id, x.today, x.openCalendar) }
+        }
+        if (section.id == "realestate") {
+            item(key = "myhome") {
+                MyHomeCard(x.home, onOpen = { x.onHomeOpened(); myHomeOpen = true }, onSetup = { realPriceOpen = true })
+            }
+        }
         item(key = "headline") { HeadlineCard(section.headline, section.summary) }
         if (section.compass.isNotEmpty()) {
             item(key = "compass") { CompassCard(section.compass) }
         }
         if (section.id == "realestate") {
             item(key = "realprice") { RealPriceEntry { realPriceOpen = true } }
+        }
+        if (section.id == "issues") {
+            item(key = "assets") { AssetEntry { assetOpen = true } }
         }
 
         if (section.metrics.isNotEmpty()) {
@@ -202,7 +283,7 @@ private fun SectionScreen(
         }
         if (section.charts.isNotEmpty()) {
             item(key = "charts-title") { BlockTitle("가격 추이") }
-            items(section.charts, key = { "chart-" + it.title }) { SeriesCard(it) }
+            items(section.charts, key = { "chart-" + it.title }) { SeriesCard(it, loader) }
         }
         section.table?.let { t -> item(key = "table") { TableCard(t) } }
         section.tables.forEachIndexed { i, t -> item(key = "tables-$i") { TableCard(t) } }

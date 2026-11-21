@@ -174,9 +174,95 @@ private fun formatAxis(v: Double, unit: String): String {
         else -> "%.2f".format(v)
     }
     if (unit == "억") return "%.2f억".format(v)
+    if (unit == "건") return "%,.0f".format(v)
     return when (unit) {
         "%" -> "$n%"
         "$" -> "$$n"
         else -> n
     }
 }
+
+/** One line of a multi-line chart. Points are matched to the shared x labels by their x text. */
+data class ChartLine(
+    val name: String,
+    val points: List<ChartPoint>,
+    val color: Color,
+    val dashed: Boolean = false,
+    /** Scaled on its own (e.g. a stock that moves far more than house prices); its end label shows the real value. */
+    val secondary: Boolean = false,
+)
+
+/** Several lines over the same months (e.g. house prices of a few regions as an index). */
+@Composable
+fun MultiLineChart(lines: List<ChartLine>, xLabels: List<String>, modifier: Modifier = Modifier) {
+    val measurer = rememberTextMeasurer()
+    val labelColor = MaterialTheme.colorScheme.onSurfaceVariant
+    val gridColor = MaterialTheme.colorScheme.outlineVariant
+    val axisStyle = TextStyle(fontSize = 10.sp, color = labelColor)
+    Canvas(modifier) {
+        val all = lines.filterNot { it.secondary }.flatMap { l -> l.points.map { it.y } }
+        if (all.isEmpty() || xLabels.size < 2) return@Canvas
+        val sec = lines.filter { it.secondary }.flatMap { l -> l.points.map { it.y } }
+        val bottomPad = 18.dp.toPx()
+        val topPad = 8.dp.toPx()
+        val rightPad = 34.dp.toPx()
+        val chartH = size.height - bottomPad - topPad
+        val minV = all.min()
+        val maxV = all.max()
+        val span = (maxV - minV).takeIf { it > 0 } ?: 1.0
+        val lo = minV - span * 0.08
+        val hi = maxV + span * 0.08
+        val x0 = 6.dp.toPx()
+        val stepX = (size.width - x0 - rightPad) / (xLabels.size - 1)
+        fun y(v: Double) = topPad + (chartH - ((v - lo) / (hi - lo) * chartH)).toFloat()
+        val sLo = sec.minOrNull() ?: 0.0
+        val sHi = sec.maxOrNull() ?: 1.0
+        val sSpan = (sHi - sLo).takeIf { it > 0 } ?: 1.0
+        fun ys(v: Double) = topPad + (chartH - ((v - (sLo - sSpan * 0.08)) / (sSpan * 1.16) * chartH)).toFloat()
+
+        gridLines(gridColor, topPad, chartH)
+        // Reference line at 100 when the chart is an index.
+        if (lo < 100 && hi > 100) {
+            drawLine(labelColor.copy(alpha = 0.5f), Offset(0f, y(100.0)), Offset(size.width - rightPad, y(100.0)), strokeWidth = 1f)
+        }
+        val endLabels = ArrayList<Triple<Float, Float, androidx.compose.ui.text.TextLayoutResult>>()
+        lines.forEach { l ->
+            val pts = l.points.mapNotNull { p -> xLabels.indexOf(p.x).takeIf { it >= 0 }?.let { it to p.y } }.sortedBy { it.first }
+            if (pts.size < 2) return@forEach
+            val yy: (Double) -> Float = if (l.secondary) ::ys else ::y
+            val path = Path()
+            pts.forEachIndexed { i, (xi, v) ->
+                val x = x0 + xi * stepX
+                if (i == 0) path.moveTo(x, yy(v)) else path.lineTo(x, yy(v))
+            }
+            drawPath(
+                path, l.color,
+                style = Stroke(
+                    2.2.dp.toPx(), cap = StrokeCap.Round, join = StrokeJoin.Round,
+                    pathEffect = if (l.dashed) PathEffect.dashPathEffect(floatArrayOf(10f, 8f)) else null,
+                ),
+            )
+            val (lx, lv) = pts.last()
+            drawCircle(l.color, radius = 3.dp.toPx(), center = Offset(x0 + lx * stepX, yy(lv)))
+            val tl = measurer.measure("%.0f".format(lv), TextStyle(fontSize = 10.sp, color = l.color))
+            endLabels += Triple(x0 + lx * stepX + 5.dp.toPx(), yy(lv) - tl.size.height / 2, tl)
+        }
+        // End-of-line values, nudged apart so lines ending at the same height stay readable.
+        var lastBottom = -1f
+        endLabels.sortedBy { it.second }.forEach { (x, y, tl) ->
+            val top = maxOf(y, lastBottom).coerceIn(0f, size.height - bottomPad - tl.size.height)
+            drawText(tl, topLeft = Offset(x, top))
+            lastBottom = top + tl.size.height
+        }
+        val every = max(1, (xLabels.size + 4) / 5)
+        xLabels.forEachIndexed { i, s ->
+            if (i % every == 0 || i == xLabels.lastIndex) {
+                val xl = measurer.measure(s, axisStyle)
+                val tx = (x0 + i * stepX - xl.size.width / 2).coerceIn(0f, size.width - xl.size.width)
+                drawText(xl, topLeft = Offset(tx, size.height - xl.size.height))
+            }
+        }
+    }
+}
+
+val SeriesPalette = listOf(Color(0xFF2E6BE6), Color(0xFFE8590C), Color(0xFF2F9E44), Color(0xFF8E44D9))
