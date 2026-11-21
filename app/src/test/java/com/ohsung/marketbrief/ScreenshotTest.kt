@@ -9,6 +9,11 @@ import com.ohsung.marketbrief.data.Quote
 import com.ohsung.marketbrief.ui.MarketApp
 import com.ohsung.marketbrief.ui.MarketTheme
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
+import org.junit.Assert.assertTrue
+import androidx.compose.material3.Surface
+import com.ohsung.marketbrief.ui.AskClaudeContent
+import com.ohsung.marketbrief.ui.buildClaudePrompt
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -49,6 +54,25 @@ class ScreenshotTest {
         }
         compose.waitForIdle()
         compose.onRoot().captureRoboImage("build/screens/$name.png")
+    }
+
+    @Test fun askClaudePromptCarriesQuestionAndBriefing() {
+        val mem = feed.sections[2]
+        val one = buildClaudePrompt("  D램 전망 알려줘 ", feed, mem, includeAll = false)
+        assertTrue(one.startsWith("D램 전망 알려줘"))
+        assertTrue(one.contains(mem.headline))
+        assertTrue(one.contains(feed.updatedLabel))
+        assertFalse(one.contains(feed.sections[0].headline))
+        val all = buildClaudePrompt("질문", feed, mem, includeAll = true)
+        feed.sections.forEach { assertTrue(all.contains(it.headline)) }
+    }
+
+    @Test fun askSheet() {
+        compose.setContent {
+            MarketTheme { Surface { AskClaudeContent(feed.sections[1]) { _, _ -> } } }
+        }
+        compose.waitForIdle()
+        compose.onRoot().captureRoboImage("build/screens/6_ask.png")
     }
 
     @Test fun feedParses() {

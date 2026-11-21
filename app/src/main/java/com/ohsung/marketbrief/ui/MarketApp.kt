@@ -59,6 +59,7 @@ fun MarketApp(
     // Each tab keeps its own scroll position; tapping the active tab again scrolls it to the top.
     val tabStates = rememberSaveableStateHolder()
     var reselectCount by rememberSaveable { mutableIntStateOf(0) }
+    var askOpen by rememberSaveable { mutableStateOf(false) }
     val sections = feed?.sections.orEmpty()
     val current = sections.getOrNull(tab.coerceIn(0, (sections.size - 1).coerceAtLeast(0)))
 
@@ -66,8 +67,9 @@ fun MarketApp(
         containerColor = MaterialTheme.colorScheme.background,
         topBar = {
             Surface(color = MaterialTheme.colorScheme.background) {
+              Column(Modifier.windowInsetsPadding(WindowInsets.statusBars)) {
                 Row(
-                    Modifier.fillMaxWidth().windowInsetsPadding(WindowInsets.statusBars)
+                    Modifier.fillMaxWidth()
                         .padding(start = 20.dp, end = 8.dp, top = 10.dp, bottom = 6.dp),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
@@ -83,6 +85,13 @@ fun MarketApp(
                         Icon(AppIcons.Refresh, contentDescription = "새로고침", tint = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
                 }
+                if (feed != null) {
+                    AskClaudeBar(
+                        onClick = { askOpen = true },
+                        modifier = Modifier.padding(start = 16.dp, end = 16.dp, bottom = 8.dp).testTag("askClaude"),
+                    )
+                }
+              }
             }
         },
         bottomBar = {
@@ -106,6 +115,9 @@ fun MarketApp(
             }
         },
     ) { padding ->
+        if (askOpen && feed != null) {
+            AskClaudeSheet(feed, current) { askOpen = false }
+        }
         PullToRefreshBox(
             isRefreshing = refreshing,
             onRefresh = onRefresh,
