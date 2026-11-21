@@ -1,4 +1,5 @@
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
+import java.util.Properties
 
 plugins {
     id("com.android.application")
@@ -18,6 +19,13 @@ android {
         // CI passes the run number so every build can install over the previous one.
         versionCode = (System.getenv("VERSION_CODE") ?: "1").toInt()
         versionName = "0.1." + (System.getenv("VERSION_CODE") ?: "0")
+        // Personal data.go.kr key, injected only into locally built APKs (local.properties / env), never committed.
+        val localProps = Properties().apply {
+            val f = rootProject.file("local.properties")
+            if (f.exists()) f.inputStream().use { load(it) }
+        }
+        val molitKey = System.getenv("MOLIT_KEY") ?: localProps.getProperty("molit.key", "")
+        buildConfigField("String", "MOLIT_KEY", "\"$molitKey\"")
     }
 
     signingConfigs {

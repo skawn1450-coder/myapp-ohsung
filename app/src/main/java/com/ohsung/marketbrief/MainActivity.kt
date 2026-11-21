@@ -16,6 +16,7 @@ import com.ohsung.marketbrief.data.AppUpdate
 import com.ohsung.marketbrief.data.Feed
 import com.ohsung.marketbrief.data.UpdateChecker
 import com.ohsung.marketbrief.data.FeedRepository
+import com.ohsung.marketbrief.data.MolitRepository
 import com.ohsung.marketbrief.data.QuoteRepository
 import com.ohsung.marketbrief.ui.MarketApp
 import com.ohsung.marketbrief.ui.MarketTheme
@@ -37,6 +38,9 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
         private set
 
     init {
+        MolitRepository(app).let { molit ->
+            if (molit.apiKey.isBlank() && BuildConfig.MOLIT_KEY.isNotBlank()) molit.apiKey = BuildConfig.MOLIT_KEY
+        }
         viewModelScope.launch {
             feed = repo.loadLocal()
             refresh(manual = false)

@@ -173,6 +173,7 @@ private fun formatAxis(v: Double, unit: String): String {
         abs(v) >= 10 && unit != "$" -> "%.1f".format(v)
         else -> "%.2f".format(v)
     }
+    if (unit == "억") return "%.2f억".format(v)
     return when (unit) {
         "%" -> "$n%"
         "$" -> "$$n"

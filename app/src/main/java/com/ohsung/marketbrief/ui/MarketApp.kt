@@ -152,6 +152,8 @@ private fun SectionScreen(
     update: AppUpdate?,
 ) {
     var range by rememberSaveable { mutableStateOf(ChartRange.M3) }
+    var realPriceOpen by rememberSaveable { mutableStateOf(false) }
+    if (realPriceOpen) RealPriceDialog { realPriceOpen = false }
     val listState = rememberLazyListState()
     // Only react to re-taps made while this tab is showing, not to the count it was opened with.
     var handledReselect by rememberSaveable { mutableIntStateOf(reselectCount) }
@@ -185,6 +187,9 @@ private fun SectionScreen(
         if (section.compass.isNotEmpty()) {
             item(key = "compass") { CompassCard(section.compass) }
         }
+        if (section.id == "realestate") {
+            item(key = "realprice") { RealPriceEntry { realPriceOpen = true } }
+        }
 
         if (section.metrics.isNotEmpty()) {
             item(key = "metrics") { MetricsGrid(section.metrics) }
@@ -200,6 +205,7 @@ private fun SectionScreen(
             items(section.charts, key = { "chart-" + it.title }) { SeriesCard(it) }
         }
         section.table?.let { t -> item(key = "table") { TableCard(t) } }
+        section.tables.forEachIndexed { i, t -> item(key = "tables-$i") { TableCard(t) } }
         if (section.outlook.isNotEmpty()) {
             item(key = "outlook-title") { BlockTitle("전망") }
             item(key = "outlook") { OutlookCard(section.outlook) }

@@ -20,6 +20,7 @@ data class Section(
     val tickers: List<Ticker>,
     val charts: List<ChartSeries>,
     val table: DataTable?,
+    val tables: List<DataTable> = emptyList(),
     val outlook: List<Outlook>,
     val positives: List<Factor>,
     val negatives: List<Factor>,
@@ -108,6 +109,7 @@ object FeedParser {
                 note = t.str("note"),
             )
         },
+        tables = o.objects("tables").map(::table),
         outlook = o.objects("outlook").map { Outlook(it.str("source"), it.str("text"), it.str("url")) },
         positives = o.objects("positives").map(::factor),
         negatives = o.objects("negatives").map(::factor),
@@ -123,6 +125,19 @@ object FeedParser {
         },
         compass = o.objects("compass").map { CompassLine(it.str("kind"), it.str("text"), it.str("url")) },
     )
+
+    private fun table(t: JSONObject): DataTable {
+        val rows = t.optJSONArray("rows") ?: JSONArray()
+        return DataTable(
+            title = t.str("title"),
+            columns = t.strings("columns"),
+            rows = (0 until rows.length()).map { i ->
+                val r = rows.optJSONArray(i) ?: JSONArray()
+                (0 until r.length()).map { j -> r.optString(j) }
+            },
+            note = t.str("note"),
+        )
+    }
 
     private fun factor(o: JSONObject) = Factor(o.str("title"), o.str("detail"), o.str("source"), o.str("url"))
 
