@@ -255,16 +255,35 @@ private fun ResultCard(y: OpYear, r: BonusResult, unit: BonusUnit, price: Double
                 Column(Modifier.fillMaxWidth().clip(RoundedCornerShape(14.dp)).background(MaterialTheme.colorScheme.surface).padding(12.dp)) {
                     Text("특별성과급을 받는 날", style = MaterialTheme.typography.titleSmall)
                     Muted("49.5%를 원천징수하고 보험료를 뗀 ${won(r.specialShareValue)}어치를 삼성전자 주식으로 받아요.")
-                    if (price != null) {
-                        val shares = floor(r.specialShareValue / price).toInt()
+                    val shares = price?.let { floor(r.specialShareValue / it).toInt() }
+                    if (shares != null) {
                         Spacer(Modifier.height(6.dp))
                         Text(
                             "약 %,d주 (지금 주가 %,.0f원 기준)".format(shares, price),
                             style = MaterialTheme.typography.bodyLarge,
                             fontWeight = FontWeight.Bold,
                         )
-                        Muted("바로 %,d주 · 1년 뒤 %,d주 · 2년 뒤 %,d주 매도 가능".format(shares - 2 * (shares / 3), shares / 3, shares / 3))
                     }
+                    // Shares unlock in thirds: right away, after one year, after two years.
+                    Spacer(Modifier.height(10.dp))
+                    Text("3분의 1씩 나눠서 팔 수 있어요", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Medium)
+                    Spacer(Modifier.height(4.dp))
+                    val payYear = y.year + 1
+                    val third = r.specialShareValue / 3
+                    listOf("바로" to payYear, "1년 뒤" to payYear + 1, "2년 뒤" to payYear + 2).forEachIndexed { i, (label, yr) ->
+                        val n = shares?.let { if (i == 0) it - 2 * (it / 3) else it / 3 }
+                        Row(Modifier.fillMaxWidth().padding(vertical = 4.dp).testTag("tranche$i"), verticalAlignment = Alignment.CenterVertically) {
+                            Column(Modifier.weight(1f)) {
+                                Text(label, style = MaterialTheme.typography.bodyMedium)
+                                Muted("${yr}년 3~4월부터")
+                            }
+                            Column(horizontalAlignment = Alignment.End) {
+                                Text(won(third), style = MaterialTheme.typography.titleSmall)
+                                if (n != null) Muted("%,d주".format(n))
+                            }
+                        }
+                    }
+                    Muted("받는 날 가치 기준이에요(세전으로는 1/3이 ${won(r.special / 3)}). 팔 때 주가에 따라 금액이 달라져요.")
                     if (r.refund > 0) {
                         Spacer(Modifier.height(4.dp))
                         Muted("다음 해 연말정산에서 약 ${won(r.refund)}를 돌려받을 것으로 보여요 (미리 뗀 49.5%가 실제 세율보다 높아서).")
