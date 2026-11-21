@@ -159,5 +159,9 @@ private fun formatAxis(v: Double, unit: String): String {
         abs(v) >= 10 -> "%.1f".format(v)
         else -> "%.2f".format(v)
     }
-    return if (unit == "%") "$n%" else n
+    return when (unit) {
+        "%" -> "$n%"
+        "$" -> "$$n"
+        else -> n
+    }
 }
