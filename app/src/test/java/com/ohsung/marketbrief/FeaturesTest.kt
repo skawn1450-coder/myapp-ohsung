@@ -5,7 +5,12 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Surface
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.hasScrollToIndexAction
+import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.onRoot
+import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollTo
+import androidx.compose.ui.test.performScrollToIndex
 import androidx.compose.ui.unit.dp
 import androidx.test.core.app.ApplicationProvider
 import com.github.takahirom.roborazzi.captureRoboImage
@@ -238,18 +243,57 @@ class FeaturesTest {
 
     @Test fun developments() {
         val devs = FeedParser.parse(assetFeed()).developments
-        assertTrue(devs.size >= 10)
+        assertTrue(devs.size >= 30)
         assertTrue(devs.any { it.tier == "S" && it.good } && devs.any { !it.good })
+        assertTrue(devs.all { it.probability in 0..100 && it.area.isNotBlank() })
+        // Feed covers Gyeonggi, not just one city.
+        assertTrue(devs.map { it.city }.toSet().size >= 10)
         val gtx = devs.first { it.id == "gtx-c-suwon" }
         // 수원역 to 수원시청 area is roughly 2.5km.
         val km = com.ohsung.marketbrief.data.Geo.km(37.2634, 127.0317, gtx.lat, gtx.lon)
         assertTrue("km=$km", km in 2.0..3.2)
+        // Lines are measured to their nearest station: from 인덕원 the GTX-C is right there.
+        assertTrue(gtx.km(37.4013, 126.9767) < 0.5)
+        assertEquals("광역", gtx.city)
         val here = home.copy(lat = 37.2700, lon = 127.0150)
         compose.setContent {
             MarketTheme { Surface { com.ohsung.marketbrief.ui.DevelopmentContent(devs, here, {}, {}) } }
         }
         compose.waitForIdle()
         compose.onRoot().captureRoboImage("build/screens/16_developments.png")
+        compose.onNodeWithText("가능성순").performClick()
+        compose.onNode(hasScrollToIndexAction()).performScrollToIndex(3)
+        compose.waitForIdle()
+        compose.onRoot().captureRoboImage("build/screens/17_developments_prob.png")
+        compose.onNode(hasScrollToIndexAction()).performScrollToIndex(1)
+        compose.onNodeWithText("용인").performScrollTo().performClick()
+        compose.waitForIdle()
+        compose.onNodeWithText("SK하이닉스 용인 반도체 클러스터").assertExists()
+    }
+
+    @Test fun parsesDevelopmentProbability() {
+        val arr = org.json.JSONArray(
+            """[
+              {"id":"a","name":"A","effect":"호재","tier":"s","stage":"착공","lat":37.0,"lon":127.0,"probability":120,"area":"용인 처인구",
+               "points":[[37.1,127.1],{"lat":37.2,"lon":127.2},[0,0],"x"]},
+              {"id":"b","name":"B","effect":"악재","tier":"B","stage":"","lat":37.0,"lon":127.0,"probability":30,"area":"파주~화성"},
+              {"id":"c","name":"C","effect":"호재","tier":"C","stage":"제안","lat":37.0,"lon":127.0}
+            ]""",
+        )
+        val (a, b, c) = com.ohsung.marketbrief.data.DevelopmentParser.parse(arr)
+        assertEquals("S", a.tier)
+        assertEquals(85, a.probability) // out of range → stage default
+        assertEquals(2, a.points.size)
+        assertEquals("용인", a.city)
+        assertEquals(37.2 to 127.2, a.nearest(37.25, 127.25))
+        assertEquals(30, b.probability)
+        assertEquals("계획", b.stage)
+        assertEquals("낮음", b.probLabel)
+        assertEquals("광역", b.city)
+        assertEquals(15, c.probability)
+        assertEquals("희박", c.probLabel)
+        assertEquals("기타", c.city)
+        assertEquals(4 * 0.85, a.expected, 1e-9)
     }
 
     @Test fun assetScreen() {

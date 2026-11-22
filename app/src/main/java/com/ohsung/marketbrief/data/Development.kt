@@ -7,10 +7,12 @@ import kotlin.math.sin
 import kotlin.math.sqrt
 
 /**
- * A local development or nuisance that can move house prices (호재 / 악재), graded S–C.
+ * A development or nuisance that can move house prices (호재 / 악재), graded S–C.
  *
- * Tier = how much it changes the area if it happens; [stage] says how far along it is,
- * so an S-tier plan that is still only a plan is shown as such.
+ * Tier = how much it changes the area if it happens. [stage] says how far along it is and
+ * [probability] (0–100) is how likely it is to actually be finished, so an S-tier plan that is
+ * still only a plan is shown as such. Rail lines carry their stations in [points]; distance is
+ * measured to the nearest one.
  */
 data class Development(
     val id: String,
@@ -26,14 +28,52 @@ data class Development(
     val why: String,
     val source: String,
     val url: String,
+    val probability: Int = defaultProbability(stage),
+    val probNote: String = "",
+    val area: String = "",
+    val points: List<Pair<Double, Double>> = emptyList(),
 ) {
     val tierScore: Int get() = when (tier) { "S" -> 4; "A" -> 3; "B" -> 2; else -> 1 }
-    /** 0 (plan) … 1 (done): how certain it is to happen. */
-    val certainty: Double get() = when (stage) {
-        "완공", "운영중" -> 1.0
-        "착공", "진행" -> 0.85
-        "확정" -> 0.6
-        else -> 0.35
+
+    /** 0 … 1: how likely it is to happen. */
+    val certainty: Double get() = probability / 100.0
+
+    /** Impact weighted by likelihood, for the "기대값" sort (S·100% = 4). */
+    val expected: Double get() = tierScore * certainty
+
+    val probLabel: String get() = probLabel(probability)
+
+    /** First word of [area]; multi-city lines ("파주~동탄") are grouped as 광역. */
+    val city: String get() = when {
+        area.isBlank() -> "기타"
+        "~" in area || "," in area -> "광역"
+        else -> area.substringBefore(' ')
+    }
+
+    private val allPoints: List<Pair<Double, Double>> get() = listOf(lat to lon) + points
+
+    /** The point of this development closest to (lat0, lon0), e.g. the nearest station of a line. */
+    fun nearest(lat0: Double, lon0: Double): Pair<Double, Double> =
+        allPoints.minBy { Geo.km(lat0, lon0, it.first, it.second) }
+
+    fun km(lat0: Double, lon0: Double): Double = allPoints.minOf { Geo.km(lat0, lon0, it.first, it.second) }
+
+    companion object {
+        /** Used when the feed has no number: a rough value for the stage. */
+        fun defaultProbability(stage: String): Int = when (stage) {
+            "완공", "운영중" -> 100
+            "착공", "진행" -> 85
+            "확정" -> 65
+            "계획" -> 35
+            else -> 15
+        }
+
+        fun probLabel(p: Int): String = when {
+            p >= 80 -> "높음"
+            p >= 50 -> "보통"
+            p >= 20 -> "낮음"
+            else -> "희박"
+        }
     }
 }
 
@@ -45,13 +85,15 @@ object DevelopmentParser {
             val lat = o.optDouble("lat", Double.NaN)
             val lon = o.optDouble("lon", Double.NaN)
             if (lat.isNaN() || lon.isNaN()) return@mapNotNull null
+            val stage = o.optString("stage").ifBlank { "계획" }
+            val prob = o.optInt("probability", -1)
             Development(
                 id = o.optString("id"),
                 name = o.optString("name"),
                 good = o.optString("effect") != "악재",
                 tier = o.optString("tier").uppercase().takeIf { it in listOf("S", "A", "B", "C") } ?: "C",
                 category = o.optString("category"),
-                stage = o.optString("stage").ifBlank { "계획" },
+                stage = stage,
                 lat = lat,
                 lon = lon,
                 eta = o.optString("eta"),
@@ -59,7 +101,26 @@ object DevelopmentParser {
                 why = o.optString("why"),
                 source = o.optString("source"),
                 url = o.optString("url"),
+                probability = if (prob in 0..100) prob else Development.defaultProbability(stage),
+                probNote = o.optString("probNote"),
+                area = o.optString("area"),
+                points = parsePoints(o.optJSONArray("points")),
             )
+        }
+    }
+
+    /** Accepts `[[lat, lon], …]` or `[{"lat":…, "lon":…}, …]`; bad entries are skipped. */
+    private fun parsePoints(arr: org.json.JSONArray?): List<Pair<Double, Double>> {
+        if (arr == null) return emptyList()
+        return (0 until arr.length()).mapNotNull { i ->
+            val pair = arr.optJSONArray(i)
+            val (la, lo) = if (pair != null) {
+                pair.optDouble(0, Double.NaN) to pair.optDouble(1, Double.NaN)
+            } else {
+                val o = arr.optJSONObject(i) ?: return@mapNotNull null
+                o.optDouble("lat", Double.NaN) to o.optDouble("lon", Double.NaN)
+            }
+            if (la.isNaN() || lo.isNaN() || la !in 33.0..39.0 || lo !in 124.0..132.0) null else la to lo
         }
     }
 }
@@ -86,6 +147,7 @@ object Geo {
     fun ring(km: Double): String = when {
         km <= 1.0 -> "도보권"
         km <= 3.0 -> "생활권"
-        else -> "광역"
+        km <= 10.0 -> "인접권"
+        else -> "원거리"
     }
 }

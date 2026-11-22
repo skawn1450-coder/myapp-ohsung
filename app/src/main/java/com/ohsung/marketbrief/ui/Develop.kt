@@ -71,20 +71,43 @@ fun tierColor(tier: String): Color = when (tier) {
     else -> Color(0xFF7A7F8E)
 }
 
-private data class Placed(val d: Development, val km: Double?)
+private data class Placed(val d: Development, val km: Double?, val at: Pair<Double, Double>)
 
-private fun place(devs: List<Development>, home: HomeConfig?): List<Placed> {
+private val SORTS = listOf("영향순", "가능성순", "기대값순", "거리순")
+
+private fun place(devs: List<Development>, home: HomeConfig?, sort: String = "영향순"): List<Placed> {
     val lat = home?.lat
     val lon = home?.lon
-    return devs.map { Placed(it, if (lat != null && lon != null) Geo.km(lat, lon, it.lat, it.lon) else null) }
-        .sortedWith(compareByDescending<Placed> { it.d.tierScore }.thenBy { it.km ?: 99.0 })
+    val placed = devs.map {
+        if (lat != null && lon != null) Placed(it, it.km(lat, lon), it.nearest(lat, lon)) else Placed(it, null, it.lat to it.lon)
+    }
+    val byImpact = compareByDescending<Placed> { it.d.tierScore }.thenByDescending { it.d.probability }.thenBy { it.km ?: 999.0 }
+    return placed.sortedWith(
+        when (sort) {
+            "가능성순" -> compareByDescending<Placed> { it.d.probability }.then(byImpact)
+            "기대값순" -> compareByDescending<Placed> { it.d.expected }.then(byImpact)
+            "거리순" -> compareBy<Placed> { it.km ?: 999.0 }.then(byImpact)
+            else -> byImpact
+        },
+    )
 }
+
+/** Rings (km) and the radius the radar covers for a chosen range. */
+private fun radarScale(range: Double): Pair<List<Double>, Double> = when {
+    range <= 1.0 -> listOf(0.5, 1.0) to 1.1
+    range <= 3.0 -> listOf(1.0, 2.0, 3.0) to 3.3
+    range <= 5.0 -> listOf(1.0, 3.0, 5.0) to 5.5
+    range <= 10.0 -> listOf(3.0, 5.0, 10.0) to 11.0
+    else -> listOf(5.0, 15.0, 30.0) to 33.0
+}
+
+private fun fmtKm(r: Double) = if (r % 1.0 == 0.0) "${r.toInt()}km" else "${r}km"
 
 /** Summary card on the real-estate tab. */
 @Composable
 fun DevelopmentEntry(devs: List<Development>, home: HomeConfig?, onClick: () -> Unit) {
     val placed = place(devs, home)
-    val near = placed.filter { (it.km ?: 0.0) <= 3.0 }
+    val near = placed.filter { (it.km ?: 0.0) <= 5.0 }
     Surface(
         Modifier.fillMaxWidth().clip(RoundedCornerShape(20.dp)).clickable(onClick = onClick).testTag("devEntry"),
         shape = RoundedCornerShape(20.dp),
@@ -98,13 +121,13 @@ fun DevelopmentEntry(devs: List<Development>, home: HomeConfig?, onClick: () -> 
             ) { Icon(AppIcons.Home, null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(22.dp)) }
             Spacer(Modifier.width(14.dp))
             Column(Modifier.weight(1f)) {
-                Text("우리 동네 호재·악재", style = MaterialTheme.typography.titleSmall)
+                Text("경기도 호재·악재 지도", style = MaterialTheme.typography.titleSmall)
                 val good = near.filter { it.d.good }.groupingBy { it.d.tier }.eachCount()
                 val bad = near.filter { !it.d.good }.groupingBy { it.d.tier }.eachCount()
                 fun fmt(m: Map<String, Int>) = listOf("S", "A", "B", "C").mapNotNull { t -> m[t]?.let { "$t$it" } }.joinToString(" ").ifBlank { "없음" }
                 Muted(
-                    if (home?.hasLocation == true) "3km 안 · 호재 ${fmt(good)} · 악재 ${fmt(bad)}"
-                    else "개발 호재·착공 예정·재개발과 악재를 S~C 등급으로 정리했어요",
+                    if (home?.hasLocation == true) "5km 안 · 호재 ${fmt(good)} · 악재 ${fmt(bad)} · 경기 전체 ${devs.size}건"
+                    else "경기도 개발 호재·악재 ${devs.size}건을 S~C 등급과 실현 가능성으로 정리했어요",
                 )
             }
             Text("›", style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
@@ -130,34 +153,55 @@ fun DevelopmentContent(
     modifier: Modifier = Modifier,
 ) {
     var effect by rememberSaveable { mutableStateOf("전체") }
-    var range by rememberSaveable { mutableStateOf(if (home?.hasLocation == true) 5.0 else 99.0) }
-    val placed = place(devs, home).filter {
-        (effect == "전체" || (effect == "호재") == it.d.good) && (it.km == null || it.km <= range)
+    val located = home?.hasLocation == true
+    var range by rememberSaveable { mutableStateOf(if (located) 10.0 else 99.0) }
+    var city by rememberSaveable { mutableStateOf("전체 지역") }
+    var sort by rememberSaveable { mutableStateOf("영향순") }
+    val cities = remember(devs) {
+        listOf("전체 지역") + devs.groupingBy { it.city }.eachCount().entries
+            .sortedWith(compareByDescending<Map.Entry<String, Int>> { it.value }.thenBy { it.key }).map { it.key }
+    }
+    val all = place(devs, home, if (sort == "거리순" && !located) "영향순" else sort)
+        .filter { effect == "전체" || (effect == "호재") == it.d.good }
+    // A chosen city shows everything there; otherwise the distance range applies.
+    val placed = all.filter {
+        if (city != "전체 지역") it.d.city == city else (it.km == null || it.km <= range)
     }
     Column(modifier.fillMaxSize()) {
         Row(Modifier.fillMaxWidth().padding(start = 8.dp, end = 12.dp, top = 8.dp), verticalAlignment = Alignment.CenterVertically) {
             TextButton(onClick = onClose) { Text("‹ 닫기") }
             Column(Modifier.weight(1f)) {
-                Text("우리 동네 호재·악재", style = MaterialTheme.typography.titleMedium)
-                Muted(home?.shortName?.let { "$it 기준 · 위치는 대략이에요" } ?: "수원·반도체 벨트 주요 사업")
+                Text("경기도 호재·악재", style = MaterialTheme.typography.titleMedium)
+                Muted(home?.shortName?.let { "$it 기준 · 위치는 대략이에요" } ?: "경기도 주요 사업 ${devs.size}건")
             }
         }
         LazyColumn(contentPadding = PaddingValues(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            if (home?.hasLocation == true) {
-                item { Card { Radar(place(devs, home).filter { effect == "전체" || (effect == "호재") == it.d.good }, home) } }
+            if (located) {
+                item { Card { Radar(all.filter { it.km == null || it.km <= maxOf(range, 1.0) || range >= 99.0 }, home!!, range) } }
             } else {
                 item { LocationSetup(home, onHomeChanged) }
             }
             item {
-                Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                    listOf("전체", "호재", "악재").forEach { e -> Pill(e, e == effect) { effect = e } }
-                    if (home?.hasLocation == true) {
-                        Spacer(Modifier.width(6.dp))
-                        listOf(1.0 to "1km", 3.0 to "3km", 5.0 to "5km", 99.0 to "전체").forEach { (r, l) -> Pill(l, r == range) { range = r } }
+                Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                    ChipRow { listOf("전체", "호재", "악재").forEach { e -> Pill(e, e == effect) { effect = e } } }
+                    if (located) {
+                        ChipRow {
+                            listOf(1.0, 3.0, 5.0, 10.0, 30.0, 99.0).forEach { r ->
+                                Pill(if (r >= 99.0) "거리 전체" else fmtKm(r), r == range && city == "전체 지역") { range = r; city = "전체 지역" }
+                            }
+                        }
+                    }
+                    ChipRow { cities.forEach { c -> Pill(c, c == city) { city = c } } }
+                    ChipRow {
+                        SORTS.filter { located || it != "거리순" }.forEach { o -> Pill(o, o == sort) { sort = o } }
                     }
                 }
             }
-            if (placed.isEmpty()) item { Muted("이 범위에는 정리된 사업이 없어요.") }
+            item {
+                val high = placed.count { it.d.probability >= 80 }
+                Muted("${placed.size}건 · 실현 가능성 높음 ${high}건" + if (city == "전체 지역" && located && range < 99.0) " · ${fmtKm(range)} 안" else "")
+            }
+            if (placed.isEmpty()) item { Muted("이 조건에는 정리된 사업이 없어요. 범위를 넓히거나 지역을 골라 보세요.") }
             items(placed, key = { it.d.id }) { DevRow(it) }
             item { TierGuide() }
         }
@@ -165,31 +209,36 @@ fun DevelopmentContent(
 }
 
 @Composable
-private fun Radar(placed: List<Placed>, home: HomeConfig) {
+private fun ChipRow(content: @Composable () -> Unit) {
+    Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(6.dp)) { content() }
+}
+
+@Composable
+private fun Radar(placed: List<Placed>, home: HomeConfig, range: Double) {
     val measurer = rememberTextMeasurer()
     val mc = LocalMarketColors.current
     val grid = MaterialTheme.colorScheme.outlineVariant
     val label = MaterialTheme.colorScheme.onSurfaceVariant
     val center = MaterialTheme.colorScheme.primary
-    Text("내 단지 주변 (북쪽이 위)", style = MaterialTheme.typography.titleSmall)
+    val (rings, maxKm) = radarScale(range)
+    Text("내 단지 주변 (북쪽이 위 · 노선은 가장 가까운 역)", style = MaterialTheme.typography.titleSmall)
     Spacer(Modifier.height(8.dp))
     Canvas(Modifier.fillMaxWidth().aspectRatio(1f).testTag("radar")) {
         val c = Offset(size.width / 2, size.height / 2)
-        val maxKm = 5.5
         val rPx = min(size.width, size.height) / 2 * 0.94f
         val dash = PathEffect.dashPathEffect(floatArrayOf(8f, 8f))
-        listOf(1.0, 3.0, 5.0).forEach { k ->
+        rings.forEach { k ->
             val rr = (k / maxKm * rPx).toFloat()
             drawCircle(grid, radius = rr, center = c, style = Stroke(1.dp.toPx(), pathEffect = dash))
-            val t = measurer.measure("${k.toInt()}km", TextStyle(fontSize = 10.sp, color = label))
+            val t = measurer.measure(fmtKm(k), TextStyle(fontSize = 10.sp, color = label))
             drawText(t, topLeft = Offset(c.x + 4.dp.toPx(), c.y - rr - t.size.height))
         }
         drawCircle(center, radius = 6.dp.toPx(), center = c)
         val dotR = 11.dp.toPx()
         val drawn = ArrayList<Offset>()
         // Lower tiers first so S/A sit on top; items at the same spot fan out around it.
-        placed.sortedBy { it.d.tierScore }.forEach { p ->
-            val (e, n) = Geo.offset(home.lat!!, home.lon!!, p.d.lat, p.d.lon)
+        placed.sortedWith(compareBy<Placed> { it.d.tierScore }.thenBy { it.d.probability }).forEach { p ->
+            val (e, n) = Geo.offset(home.lat!!, home.lon!!, p.at.first, p.at.second)
             val km = p.km ?: return@forEach
             val scale = if (km > maxKm) maxKm / km else 1.0
             var x = c.x + (e * scale / maxKm * rPx).toFloat()
@@ -202,16 +251,19 @@ private fun Radar(placed: List<Placed>, home: HomeConfig) {
             }
             drawn += Offset(x, y)
             val col = if (p.d.good) mc.up else mc.down
-            drawCircle(col.copy(alpha = 0.18f + 0.6f * p.d.certainty.toFloat()), radius = dotR, center = Offset(x, y))
+            drawCircle(col.copy(alpha = 0.15f + 0.75f * p.d.certainty.toFloat()), radius = dotR, center = Offset(x, y))
+            if (p.d.probability < 50) {
+                drawCircle(col, radius = dotR, center = Offset(x, y), style = Stroke(1.5.dp.toPx(), pathEffect = PathEffect.dashPathEffect(floatArrayOf(5f, 4f))))
+            }
             val t = measurer.measure(p.d.tier, TextStyle(fontSize = 11.sp, color = Color.White, fontWeight = FontWeight.Bold))
             drawText(t, topLeft = Offset(x - t.size.width / 2, y - t.size.height / 2))
         }
     }
     Spacer(Modifier.height(6.dp))
-    Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+    Row(horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.CenterVertically) {
         LegendDot(LocalMarketColors.current.up, "호재")
         LegendDot(LocalMarketColors.current.down, "악재")
-        Muted("진할수록 진행이 많이 된 사업")
+        Muted("진할수록 실현 가능성이 높고, 점선은 50% 미만")
     }
 }
 
@@ -248,7 +300,7 @@ private fun DevRow(p: Placed) {
                     Row(horizontalArrangement = Arrangement.spacedBy(4.dp), verticalAlignment = Alignment.CenterVertically) {
                         Tag(if (d.good) "${d.tier} 호재" else "${d.tier} 악재", if (d.good) mc.up else mc.down)
                         Tag(d.stage, MaterialTheme.colorScheme.onSurfaceVariant)
-                        if (d.category.isNotBlank()) Muted(d.category)
+                        Muted(listOf(d.area, d.category).filter { it.isNotBlank() }.joinToString(" · "))
                     }
                 }
                 p.km?.let { km ->
@@ -258,6 +310,8 @@ private fun DevRow(p: Placed) {
                     }
                 }
             }
+            Spacer(Modifier.height(8.dp))
+            ProbabilityBar(d)
             if (d.eta.isNotBlank()) {
                 Spacer(Modifier.height(6.dp))
                 Text(d.eta, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Medium)
@@ -277,6 +331,33 @@ private fun DevRow(p: Placed) {
                     runCatching { context.startActivity(Intent(Intent.ACTION_VIEW, geo).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)) }
                 }) { Text("지도") }
             }
+        }
+    }
+}
+
+fun probColor(p: Int): Color = when {
+    p >= 80 -> Color(0xFF2F9E44)
+    p >= 50 -> Color(0xFF1C7ED6)
+    p >= 20 -> Color(0xFFF08C00)
+    else -> Color(0xFF868E96)
+}
+
+@Composable
+private fun ProbabilityBar(d: Development) {
+    val col = probColor(d.probability)
+    Column(Modifier.testTag("prob_${d.id}")) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Text("실현 가능성", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Spacer(Modifier.width(8.dp))
+            Box(Modifier.weight(1f).height(8.dp).clip(RoundedCornerShape(4.dp)).background(MaterialTheme.colorScheme.surfaceVariant)) {
+                Box(Modifier.fillMaxWidth(d.probability / 100f).height(8.dp).clip(RoundedCornerShape(4.dp)).background(col))
+            }
+            Spacer(Modifier.width(8.dp))
+            Text("${d.probability}% · ${d.probLabel}", style = MaterialTheme.typography.labelMedium, color = col, fontWeight = FontWeight.Bold)
+        }
+        if (d.probNote.isNotBlank()) {
+            Spacer(Modifier.height(2.dp))
+            Text(d.probNote, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
     }
 }
@@ -327,6 +408,26 @@ private fun TierGuide() {
             }
         }
         Spacer(Modifier.height(6.dp))
-        Muted("등급은 실현됐을 때의 영향 크기예요. 진행 단계(계획 → 확정 → 착공 → 완공)는 따로 표시하고, 계획 단계는 무산되거나 늦어질 수 있어요. 매일 아침 갱신 때 공식 발표와 주요 언론 기준으로 단계와 일정을 고쳐요. 투자 권유가 아니에요.")
+        Muted("등급은 실현됐을 때의 영향 크기이고, 실현 가능성은 그 사업이 실제로 끝까지 갈 확률을 따로 매긴 거예요. 기대값순은 등급 점수(S4·A3·B2·C1) × 가능성으로 정렬해요.")
+        Spacer(Modifier.height(10.dp))
+        Text("실현 가능성 기준", style = MaterialTheme.typography.titleSmall)
+        Spacer(Modifier.height(6.dp))
+        listOf(
+            100 to "완공·운영 중 (악재는 이미 있는 시설)",
+            90 to "착공 · 공정률이 높거나 재원이 확보됨 (85~95%)",
+            70 to "확정 · 국가계획 반영, 예타 통과, 실시협약, 지구 지정·고시 (60~80%)",
+            35 to "계획 · 지자체 구상, 용역·공모 단계 (20~50%)",
+            10 to "제안 · 공약이나 건의뿐, 국가계획 미반영, 반대가 강함 (5~20%)",
+        ).forEach { (p, text) ->
+            Row(Modifier.padding(vertical = 3.dp), verticalAlignment = Alignment.CenterVertically) {
+                Box(Modifier.size(width = 40.dp, height = 20.dp).clip(RoundedCornerShape(6.dp)).background(probColor(p)), contentAlignment = Alignment.Center) {
+                    Text(Development.probLabel(p), color = Color.White, style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold)
+                }
+                Spacer(Modifier.width(8.dp))
+                Muted(text)
+            }
+        }
+        Spacer(Modifier.height(6.dp))
+        Muted("같은 단계라도 공사 사고, 사업비 증가, 민자 유찰, 주민 반대가 있으면 낮추고 재원이 확보되면 올려요. 일정 지연은 메모에 따로 적어요. 매일 아침 갱신 때 공식 발표와 주요 언론 기준으로 단계·가능성·일정을 고쳐요. 투자 권유가 아니에요.")
     }
 }
