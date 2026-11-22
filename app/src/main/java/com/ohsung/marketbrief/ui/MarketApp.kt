@@ -68,6 +68,11 @@ fun MarketApp(
     onArchiveExit: () -> Unit = {},
     today: LocalDate = LocalDate.now(),
     initialCalendarDate: LocalDate? = null,
+    subs: SubsUi = SubsUi(),
+    disclosures: DisclosureUi = DisclosureUi(),
+    extraEvents: List<MarketEvent> = emptyList(),
+    onSubsKeySaved: () -> Unit = {},
+    onDartKeySaved: () -> Unit = {},
 ) {
     var tab by rememberSaveable { mutableIntStateOf(initialTab) }
     var calSelected by rememberSaveable { mutableStateOf(initialCalendarDate?.toString()) }
@@ -77,7 +82,7 @@ fun MarketApp(
     var reselectCount by rememberSaveable { mutableIntStateOf(0) }
     var askOpen by rememberSaveable { mutableStateOf(false) }
     val sections = feed?.sections.orEmpty()
-    val events = feed?.events.orEmpty()
+    val events = (feed?.events.orEmpty() + extraEvents).sortedBy { it.date }
     val calendarTab = sections.size
     val onCalendar = sections.isNotEmpty() && tab == calendarTab
     val current = if (onCalendar) null else sections.getOrNull(tab.coerceIn(0, (sections.size - 1).coerceAtLeast(0)))
@@ -170,7 +175,10 @@ fun MarketApp(
                 current != null -> tabStates.SaveableStateProvider(current.id) {
                     SectionScreen(
                         current, feed!!, error, refreshKey, reselectCount, loader, update,
-                        SectionExtras(events, today, openCalendar, home, onHomeChanged, onHomeOpened, archiveLabel, onArchiveExit),
+                        SectionExtras(
+                            events, today, openCalendar, home, onHomeChanged, onHomeOpened, archiveLabel, onArchiveExit,
+                            subs, disclosures, onSubsKeySaved, onDartKeySaved,
+                        ),
                     )
                 }
                 else -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
@@ -194,6 +202,10 @@ private class SectionExtras(
     val onHomeOpened: () -> Unit,
     val archiveLabel: String?,
     val onArchiveExit: () -> Unit,
+    val subs: SubsUi,
+    val disclosures: DisclosureUi,
+    val onSubsKeySaved: () -> Unit,
+    val onDartKeySaved: () -> Unit,
 )
 
 @Composable
@@ -213,6 +225,11 @@ private fun SectionScreen(
     var assetOpen by rememberSaveable { mutableStateOf(false) }
     var bonusOpen by rememberSaveable { mutableStateOf(false) }
     var devOpen by rememberSaveable { mutableStateOf(false) }
+    var subsOpen by rememberSaveable { mutableStateOf(false) }
+    var dartOpen by rememberSaveable { mutableStateOf(false) }
+    if (subsOpen) SubscriptionDialog(
+        x.subs, com.ohsung.marketbrief.data.Subscription.myPerPyeong(x.home.report?.recentMedian, x.home.config?.areaM2), x.today, onDismiss = { subsOpen = false }, onKeySaved = x.onSubsKeySaved)
+    if (dartOpen) DisclosureDialog(x.disclosures, onDismiss = { dartOpen = false }, onKeySaved = x.onDartKeySaved)
     if (devOpen) DevelopmentDialog(feed.developments, x.home.config, onDismiss = { devOpen = false }, onHomeChanged = x.onHomeChanged)
     if (bonusOpen) BonusDialog(feed.bonusYears, loader) { bonusOpen = false }
     if (realPriceOpen) RealPriceDialog(onDismiss = { realPriceOpen = false }, onHomeSet = x.onHomeChanged)
@@ -267,6 +284,7 @@ private fun SectionScreen(
             if (feed.developments.isNotEmpty()) {
                 item(key = "developments") { DevelopmentEntry(feed.developments, x.home.config) { devOpen = true } }
             }
+            item(key = "subscription") { SubscriptionEntry(x.subs, x.today) { subsOpen = true } }
         }
         item(key = "headline") { HeadlineCard(section.headline, section.summary) }
         if (section.compass.isNotEmpty()) {
@@ -280,6 +298,7 @@ private fun SectionScreen(
         }
         if (section.id == "memory") {
             item(key = "bonus") { BonusEntry { bonusOpen = true } }
+            item(key = "disclosure") { DisclosureEntry(x.disclosures, x.today) { dartOpen = true } }
         }
 
         if (section.metrics.isNotEmpty()) {

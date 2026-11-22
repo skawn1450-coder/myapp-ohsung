@@ -21,6 +21,9 @@ import com.ohsung.marketbrief.data.AppUpdate
 import com.ohsung.marketbrief.data.ArchiveEntry
 import com.ohsung.marketbrief.data.ArchiveRepository
 import com.ohsung.marketbrief.data.BonusStore
+import com.ohsung.marketbrief.data.DartRepository
+import com.ohsung.marketbrief.data.MarketEvent
+import com.ohsung.marketbrief.data.SubscriptionRepository
 import com.ohsung.marketbrief.data.ChartRange
 import com.ohsung.marketbrief.data.Deal
 import com.ohsung.marketbrief.data.Feed
@@ -31,7 +34,10 @@ import com.ohsung.marketbrief.data.HomeStore
 import com.ohsung.marketbrief.data.MolitRepository
 import com.ohsung.marketbrief.data.QuoteRepository
 import com.ohsung.marketbrief.data.UpdateChecker
+import com.ohsung.marketbrief.ui.DisclosureUi
 import com.ohsung.marketbrief.ui.HomeUi
+import com.ohsung.marketbrief.ui.SubsUi
+import com.ohsung.marketbrief.ui.subscriptionEvents
 import com.ohsung.marketbrief.ui.MarketApp
 import com.ohsung.marketbrief.ui.MarketTheme
 import com.ohsung.marketbrief.work.DailyWork
@@ -40,11 +46,14 @@ import com.ohsung.marketbrief.work.Notifier
 import com.ohsung.marketbrief.work.WidgetData
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
+import java.time.LocalDate
 
 class MainViewModel(private val app: Application) : AndroidViewModel(app) {
     private val repo = FeedRepository(app)
     private val molit = MolitRepository(app)
     private val homeStore = HomeStore(app)
+    private val subsRepo = SubscriptionRepository(app)
+    private val dartRepo = DartRepository(app)
 
     private var latest: Feed? = null
     var feed by mutableStateOf<Feed?>(null)
@@ -62,6 +71,13 @@ class MainViewModel(private val app: Application) : AndroidViewModel(app) {
         private set
     var archiveLabel by mutableStateOf<String?>(null)
         private set
+    var subs by mutableStateOf(SubsUi())
+        private set
+    var disclosures by mutableStateOf(DisclosureUi())
+        private set
+    /** 청약 steps in the user's city, merged into the calendar. */
+    var subsEvents by mutableStateOf<List<MarketEvent>>(emptyList())
+        private set
 
     private var homeDeals: List<Deal> = emptyList()
     private var homeJob: Job? = null
@@ -70,12 +86,55 @@ class MainViewModel(private val app: Application) : AndroidViewModel(app) {
         if (molit.apiKey.isBlank() && BuildConfig.MOLIT_KEY.isNotBlank()) molit.apiKey = BuildConfig.MOLIT_KEY
         homeStore.seed(buildHome())
         BonusStore(app).seed(BuildConfig.MY_SALARY.toIntOrNull(), BuildConfig.MY_UNIT)
+        if (dartRepo.apiKey.isBlank() && BuildConfig.DART_KEY.isNotBlank()) dartRepo.apiKey = BuildConfig.DART_KEY
         viewModelScope.launch {
             repo.loadLocal()?.let { latest = it; feed = it }
             refresh(manual = false)
         }
         viewModelScope.launch { update = UpdateChecker.check(BuildConfig.VERSION_CODE) }
         loadHome()
+        loadSubs()
+        loadDisclosures()
+    }
+
+    /** 분양·청약 for the 시도 of the user's home (경기 by default). */
+    fun loadSubs(force: Boolean = false) {
+        val cfg = homeStore.load()
+        val (sido, cnp) = SubscriptionRepository.areaOf(cfg?.regionCode)
+        viewModelScope.launch {
+            val city = subsRepo.cityOf(cfg?.regionCode)
+            if (!subsRepo.hasKey) {
+                subs = SubsUi(hasKey = false, sido = sido, city = city)
+                subsEvents = emptyList()
+                return@launch
+            }
+            subs = subs.copy(loading = true, hasKey = true, sido = sido, city = city, error = null)
+            val notices = runCatching { subsRepo.notices(sido, LocalDate.now().minusDays(75), force) }
+            val lh = runCatching { subsRepo.lh(cnp, 60, force) }
+            subs = SubsUi(
+                notices = notices.getOrElse { subs.notices },
+                lh = lh.getOrElse { subs.lh },
+                loading = false,
+                error = notices.exceptionOrNull()?.message?.let { "청약홈: $it" } ?: lh.exceptionOrNull()?.message?.let { "LH: $it" },
+                hasKey = true,
+                sido = sido,
+                city = city,
+            )
+            subsEvents = subscriptionEvents(subs, LocalDate.now())
+        }
+    }
+
+    fun loadDisclosures(force: Boolean = false) {
+        if (dartRepo.apiKey.isBlank()) {
+            disclosures = DisclosureUi(hasKey = false)
+            return
+        }
+        disclosures = disclosures.copy(loading = true, hasKey = true, error = null)
+        viewModelScope.launch {
+            runCatching { dartRepo.filings(60, force) }
+                .onSuccess { disclosures = DisclosureUi(it, loading = false, error = null, hasKey = true) }
+                .onFailure { disclosures = disclosures.copy(loading = false, error = it.message ?: "공시를 불러오지 못했어요") }
+        }
     }
 
     private fun buildHome(): HomeConfig? {
@@ -117,7 +176,11 @@ class MainViewModel(private val app: Application) : AndroidViewModel(app) {
             refreshing = false
             runCatching { QuoteRepository.fetch("^KS11", ChartRange.M1) }.onSuccess { WidgetData.saveKospi(app, it) }
             WidgetData.updateAll(app)
-            if (manual) loadHome()
+            if (manual) {
+                loadHome()
+                loadSubs(force = true)
+                loadDisclosures(force = true)
+            }
         }
     }
 
@@ -193,12 +256,17 @@ class MainActivity : ComponentActivity() {
                     onRefresh = { vm.refresh() },
                     loader = { symbol, range -> QuoteRepository.fetch(symbol, range) },
                     home = vm.home,
-                    onHomeChanged = { vm.loadHome() },
+                    onHomeChanged = { vm.loadHome(); vm.loadSubs() },
                     onHomeOpened = { vm.markHomeSeen() },
                     archiveLabel = vm.archiveLabel,
                     archiveLoader = { vm.archive() },
                     onArchivePick = { vm.openArchive(it) },
                     onArchiveExit = { vm.exitArchive() },
+                    subs = vm.subs,
+                    disclosures = vm.disclosures,
+                    extraEvents = vm.subsEvents,
+                    onSubsKeySaved = { vm.loadSubs(force = true); vm.loadHome() },
+                    onDartKeySaved = { vm.loadDisclosures(force = true) },
                 )
             }
         }

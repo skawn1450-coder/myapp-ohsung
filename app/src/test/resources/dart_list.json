@@ -1,0 +1,109 @@
+{
+ "status": "000",
+ "message": "정상",
+ "page_no": 1,
+ "page_count": 100,
+ "total_count": 9,
+ "total_page": 1,
+ "list": [
+  {
+   "corp_code": "00126380",
+   "corp_name": "삼성전자",
+   "stock_code": "005930",
+   "report_nm": "임원ㆍ주요주주특정증권등소유상황보고서",
+   "rcept_no": "20261118000151",
+   "flr_nm": "GOYAL SIDDHARTH",
+   "rcept_dt": "20261118",
+   "rm": "",
+   "corp_cls": "Y"
+  },
+  {
+   "corp_code": "00126380",
+   "corp_name": "삼성전자",
+   "stock_code": "005930",
+   "report_nm": "분기보고서 (2026.09)",
+   "rcept_no": "20261116001482",
+   "flr_nm": "삼성전자",
+   "rcept_dt": "20261116",
+   "rm": "",
+   "corp_cls": "Y"
+  },
+  {
+   "corp_code": "00126380",
+   "corp_name": "삼성전자",
+   "stock_code": "005930",
+   "report_nm": "최대주주등소유주식변동신고서",
+   "rcept_no": "20261113801935",
+   "flr_nm": "삼성전자",
+   "rcept_dt": "20261113",
+   "rm": "유",
+   "corp_cls": "Y"
+  },
+  {
+   "corp_code": "00126380",
+   "corp_name": "삼성전자",
+   "stock_code": "005930",
+   "report_nm": "동일인등출자계열회사와의상품ㆍ용역거래변경",
+   "rcept_no": "20261113001302",
+   "flr_nm": "삼성전자",
+   "rcept_dt": "20261113",
+   "rm": "공",
+   "corp_cls": "Y"
+  },
+  {
+   "corp_code": "00126380",
+   "corp_name": "삼성전자",
+   "stock_code": "005930",
+   "report_nm": "기업설명회(IR)개최(안내공시)",
+   "rcept_no": "20261113801115",
+   "flr_nm": "삼성전자",
+   "rcept_dt": "20261113",
+   "rm": "유",
+   "corp_cls": "Y"
+  },
+  {
+   "corp_code": "00164779",
+   "corp_name": "SK하이닉스",
+   "stock_code": "000660",
+   "report_nm": "[기재정정]현금ㆍ현물배당결정",
+   "rcept_no": "20261020800412",
+   "flr_nm": "SK하이닉스",
+   "rcept_dt": "20261020",
+   "rm": "유",
+   "corp_cls": "Y"
+  },
+  {
+   "corp_code": "00164779",
+   "corp_name": "SK하이닉스",
+   "stock_code": "000660",
+   "report_nm": "연결재무제표기준영업(잠정)실적(공정공시)",
+   "rcept_no": "20261022800118",
+   "flr_nm": "SK하이닉스",
+   "rcept_dt": "20261022",
+   "rm": "유",
+   "corp_cls": "Y"
+  },
+  {
+   "corp_code": "00164779",
+   "corp_name": "SK하이닉스",
+   "stock_code": "000660",
+   "report_nm": "주요사항보고서(자기주식취득결정)",
+   "rcept_no": "20261110000233",
+   "flr_nm": "SK하이닉스",
+   "rcept_dt": "20261110",
+   "rm": "",
+   "corp_cls": "Y"
+  },
+  {
+   "corp_code": "00164779",
+   "corp_name": "SK하이닉스",
+   "stock_code": "000660",
+   "report_nm": "조회공시요구(풍문또는보도)에대한답변(미확정)",
+   "rcept_no": "20261105800090",
+   "flr_nm": "SK하이닉스",
+   "rcept_dt": "20261105",
+   "rm": "유",
+   "corp_cls": "Y"
+  }
+ ]
+}

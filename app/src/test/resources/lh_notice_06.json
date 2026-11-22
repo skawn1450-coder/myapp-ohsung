@@ -1,0 +1,138 @@
+[
+ {
+  "dsSch": [
+   {
+    "PAN_ED_DT": "20261122",
+    "PG_SZ": "20",
+    "PAN_ST_DT": "20260801",
+    "PAGE": "1",
+    "UPP_AIS_TP_CD": "06",
+    "CNP_CD": "41"
+   }
+  ]
+ },
+ {
+  "dsList": [
+   {
+    "PAN_NT_ST_DT": "2026.11.19",
+    "PAN_ID": "2015122300021119",
+    "AIS_TP_CD_NM": "행복주택",
+    "CNP_CD_NM": "경기도",
+    "ALL_CNT": "48",
+    "SPL_INF_TP_CD": "063",
+    "AIS_TP_CD": "10",
+    "PAN_DT": "20261118",
+    "RNUM": "1",
+    "CCR_CNNT_SYS_DS_CD": "03",
+    "DTL_URL": "https://apply.lh.or.kr/lhapply/apply/wt/wrtanc/selectWrtancInfo.do?panId=2015122300021119&ccrCnntSysDsCd=03&uppAisTpCd=06&aisTpCd=10&mi=1026",
+    "CLSG_DT": "2026.12.02",
+    "UPP_AIS_TP_CD": "06",
+    "PAN_NM": "[정정공고]수원당수 1, 2단지 행복주택 입주자격완화 동호지정 입주자 모집[선계약/후검증]('26.11.18.)",
+    "UPP_AIS_TP_NM": "임대주택",
+    "PAN_SS": "공고중",
+    "DTL_URL_MOB": "https://apply.lh.or.kr/lhapply/apply/wt/wrtanc/selectWrtancInfo.do?panId=2015122300021119&ccrCnntSysDsCd=03&uppAisTpCd=06&aisTpCd=10&mi=1026"
+   },
+   {
+    "PAN_NT_ST_DT": "2026.11.18",
+    "PAN_ID": "2015122300021108",
+    "AIS_TP_CD_NM": "행복주택",
+    "CNP_CD_NM": "경기도",
+    "ALL_CNT": "48",
+    "SPL_INF_TP_CD": "063",
+    "AIS_TP_CD": "10",
+    "PAN_DT": "20261118",
+    "RNUM": "2",
+    "CCR_CNNT_SYS_DS_CD": "03",
+    "DTL_URL": "https://apply.lh.or.kr/lhapply/apply/wt/wrtanc/selectWrtancInfo.do?panId=2015122300021108&ccrCnntSysDsCd=03&uppAisTpCd=06&aisTpCd=10&mi=1026",
+    "CLSG_DT": "2026.12.02",
+    "UPP_AIS_TP_CD": "06",
+    "PAN_NM": "수원당수 1, 2단지 행복주택 입주자격완화 동호지정 입주자 모집[선계약/후검증]('26.11.18.)",
+    "UPP_AIS_TP_NM": "임대주택",
+    "PAN_SS": "정정공고중",
+    "DTL_URL_MOB": "https://apply.lh.or.kr/lhapply/apply/wt/wrtanc/selectWrtancInfo.do?panId=2015122300021108&ccrCnntSysDsCd=03&uppAisTpCd=06&aisTpCd=10&mi=1026"
+   },
+   {
+    "PAN_NT_ST_DT": "2026.11.17",
+    "PAN_ID": "0000061209",
+    "AIS_TP_CD_NM": "가정어린이집",
+    "CNP_CD_NM": "경기도",
+    "ALL_CNT": "48",
+    "SPL_INF_TP_CD": "064",
+    "AIS_TP_CD": "40",
+    "PAN_DT": "20261117",
+    "RNUM": "3",
+    "CCR_CNNT_SYS_DS_CD": "02",
+    "DTL_URL": "https://apply.lh.or.kr/lhapply/apply/wt/wrtanc/selectWrtancInfo.do?panId=0000061209&ccrCnntSysDsCd=02&uppAisTpCd=06&aisTpCd=40&mi=1026",
+    "CLSG_DT": "2026.12.03",
+    "UPP_AIS_TP_CD": "06",
+    "PAN_NM": "NHF제13호 화성봉담2 그랑드비체5단지 가정어린이집 운영예정자 모집 공고",
+    "UPP_AIS_TP_NM": "임대주택",
+    "PAN_SS": "공고중",
+    "DTL_URL_MOB": "https://apply.lh.or.kr/lhapply/apply/wt/wrtanc/selectWrtancInfo.do?panId=0000061209&ccrCnntSysDsCd=02&uppAisTpCd=06&aisTpCd=40&mi=1026"
+   },
+   {
+    "PAN_NT_ST_DT": "2026.11.16",
+    "PAN_ID": "0000061212",
+    "AIS_TP_CD_NM": "공공임대",
+    "CNP_CD_NM": "경기도",
+    "ALL_CNT": "48",
+    "SPL_INF_TP_CD": "060",
+    "AIS_TP_CD": "08",
+    "PAN_DT": "20261116",
+    "RNUM": "4",
+    "CCR_CNNT_SYS_DS_CD": "02",
+    "DTL_URL": "https://apply.lh.or.kr/lhapply/apply/wt/wrtanc/selectWrtancInfo.do?panId=0000061212&ccrCnntSysDsCd=02&uppAisTpCd=06&aisTpCd=08&mi=1026",
+    "CLSG_DT": "2026.11.26",
+    "UPP_AIS_TP_CD": "06",
+    "PAN_NM": "파주운정A4BL(별하람3) 10년 공공임대주택리츠 예비입주자 모집(무순위)",
+    "UPP_AIS_TP_NM": "임대주택",
+    "PAN_SS": "공고중",
+    "DTL_URL_MOB": "https://apply.lh.or.kr/lhapply/apply/wt/wrtanc/selectWrtancInfo.do?panId=0000061212&ccrCnntSysDsCd=02&uppAisTpCd=06&aisTpCd=08&mi=1026"
+   },
+   {
+    "PAN_NT_ST_DT": "2026.11.16",
+    "PAN_ID": "0000061210",
+    "AIS_TP_CD_NM": "공공임대",
+    "CNP_CD_NM": "경기도",
+    "ALL_CNT": "48",
+    "SPL_INF_TP_CD": "060",
+    "AIS_TP_CD": "08",
+    "PAN_DT": "20261116",
+    "RNUM": "5",
+    "CCR_CNNT_SYS_DS_CD": "02",
+    "DTL_URL": "https://apply.lh.or.kr/lhapply/apply/wt/wrtanc/selectWrtancInfo.do?panId=0000061210&ccrCnntSysDsCd=02&uppAisTpCd=06&aisTpCd=08&mi=1026",
+    "CLSG_DT": "2026.11.26",
+    "UPP_AIS_TP_CD": "06",
+    "PAN_NM": "파주운정A20BL(산내2) 10년 공공임대주택리츠 예비입주자모집(무순위)",
+    "UPP_AIS_TP_NM": "임대주택",
+    "PAN_SS": "공고중",
+    "DTL_URL_MOB": "https://apply.lh.or.kr/lhapply/apply/wt/wrtanc/selectWrtancInfo.do?panId=0000061210&ccrCnntSysDsCd=02&uppAisTpCd=06&aisTpCd=08&mi=1026"
+   },
+   {
+    "PAN_NT_ST_DT": "2026.11.16",
+    "PAN_ID": "2015122300021058",
+    "AIS_TP_CD_NM": "가정어린이집",
+    "CNP_CD_NM": "경기도",
+    "ALL_CNT": "48",
+    "SPL_INF_TP_CD": "064",
+    "AIS_TP_CD": "40",
+    "PAN_DT": "20261116",
+    "RNUM": "6",
+    "CCR_CNNT_SYS_DS_CD": "03",
+    "DTL_URL": "https://apply.lh.or.kr/lhapply/apply/wt/wrtanc/selectWrtancInfo.do?panId=2015122300021058&ccrCnntSysDsCd=03&uppAisTpCd=06&aisTpCd=40&mi=1026",
+    "CLSG_DT": "2026.12.08",
+    "UPP_AIS_TP_CD": "06",
+    "PAN_NM": "위례 A2-7블록 신혼희망타운 행복주택 가정어린이집 운영예정자 모집공고",
+    "UPP_AIS_TP_NM": "임대주택",
+    "PAN_SS": "공고중",
+    "DTL_URL_MOB": "https://apply.lh.or.kr/lhapply/apply/wt/wrtanc/selectWrtancInfo.do?panId=2015122300021058&ccrCnntSysDsCd=03&uppAisTpCd=06&aisTpCd=40&mi=1026"
+   }
+  ],
+  "resHeader": [
+   {
+    "RS_DTTM": "20261122023832",
+    "SS_CODE": "Y"
+   }
+  ]
+ }
+]

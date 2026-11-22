@@ -121,6 +121,20 @@ class AlertPrefs(context: Context) {
     var lastFeed: String?
         get() = prefs.getString("lastFeed", null)
         set(v) = prefs.edit().putString("lastFeed", v).apply()
+    var subscription: Boolean
+        get() = prefs.getBoolean("subscription", true)
+        set(v) = prefs.edit().putBoolean("subscription", v).apply()
+    var disclosure: Boolean
+        get() = prefs.getBoolean("disclosure", true)
+        set(v) = prefs.edit().putBoolean("disclosure", v).apply()
+    /** 청약홈 notice ids already alerted; null until the first check (which only records). */
+    var seenNotices: Set<String>?
+        get() = prefs.getStringSet("seenNotices", null)?.toSet()
+        set(v) = prefs.edit().putStringSet("seenNotices", v).apply()
+    /** DART receipt numbers already alerted; null until the first check. */
+    var seenFilings: Set<String>?
+        get() = prefs.getStringSet("seenFilings", null)?.toSet()
+        set(v) = prefs.edit().putStringSet("seenFilings", v).apply()
 }
 
 data class ComplexStat(

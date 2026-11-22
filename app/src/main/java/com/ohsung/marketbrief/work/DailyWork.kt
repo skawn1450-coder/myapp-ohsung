@@ -20,6 +20,11 @@ import androidx.work.WorkerParameters
 import com.ohsung.marketbrief.MainActivity
 import com.ohsung.marketbrief.R
 import com.ohsung.marketbrief.data.AlertPrefs
+import com.ohsung.marketbrief.data.AptNotice
+import com.ohsung.marketbrief.data.DartRepository
+import com.ohsung.marketbrief.data.Filing
+import com.ohsung.marketbrief.data.NoticeStatus
+import com.ohsung.marketbrief.data.SubscriptionRepository
 import com.ohsung.marketbrief.data.ChartRange
 import com.ohsung.marketbrief.data.Deal
 import com.ohsung.marketbrief.data.DealStats
@@ -67,8 +72,56 @@ class DailyWorker(context: Context, params: WorkerParameters) : CoroutineWorker(
                 if (fresh.isNotEmpty()) Notifier.deals(ctx, home, fresh)
             }
         }
+        // 청약: new sale notices in my city, and receipt/announcement days that are tomorrow.
+        val subs = SubscriptionRepository(ctx)
+        val city = subs.cityOf(home?.regionCode)
+        if (home != null && city != null && alerts.subscription && subs.hasKey) {
+            val (sido, _) = SubscriptionRepository.areaOf(home.regionCode)
+            runCatching { subs.notices(sido, LocalDate.now().minusDays(75), force = true) }.onSuccess { notices ->
+                val (fresh, soon) = SubsWatch.check(notices, city, LocalDate.now(), alerts)
+                if (fresh.isNotEmpty() || soon.isNotEmpty()) Notifier.subscriptions(ctx, city, fresh, soon)
+            }
+        }
+        // 공시: new important filings of Samsung Electronics / SK hynix.
+        val dart = DartRepository(ctx)
+        if (alerts.disclosure && dart.apiKey.isNotBlank()) {
+            runCatching { dart.filings(days = 14, force = true) }.onSuccess { filings ->
+                val fresh = DartWatch.fresh(filings, alerts)
+                if (fresh.isNotEmpty()) Notifier.filings(ctx, fresh)
+            }
+        }
         WidgetData.updateAll(ctx)
         return Result.success()
+    }
+}
+
+object SubsWatch {
+    /**
+     * Notices in [city] not alerted before (still open or upcoming), and steps falling on tomorrow.
+     * The first check only records what exists, so installing the app doesn't fire a burst.
+     */
+    fun check(notices: List<AptNotice>, city: String, today: LocalDate, alerts: AlertPrefs): Pair<List<AptNotice>, List<Pair<AptNotice, String>>> {
+        val mine = notices.filter { it.city == city }
+        val seen = alerts.seenNotices
+        val fresh = if (seen == null) emptyList() else mine.filter { it.id !in seen && it.status(today) != NoticeStatus.CLOSED }
+        alerts.seenNotices = mine.map { it.id }.toSet()
+        val tomorrow = today.plusDays(1)
+        val soon = mine.flatMap { n -> n.steps().filter { it.second == tomorrow }.map { n to it.first } }
+        return fresh to soon
+    }
+}
+
+object DartWatch {
+    /** Important filings not alerted before. The first check only records. */
+    fun fresh(filings: List<Filing>, alerts: AlertPrefs): List<Filing> {
+        val important = filings.filter { it.kind.important }
+        val seen = alerts.seenFilings
+        val fresh = if (seen == null) emptyList() else important.filter { it.receiptNo !in seen }
+        alerts.seenFilings = (important.map { it.receiptNo } + seen.orEmpty()).toSet().let { all ->
+            // Keep the set small: anything not in the current window can't come back.
+            all.filter { id -> important.any { it.receiptNo == id } }.toSet()
+        }
+        return fresh
     }
 }
 
@@ -115,12 +168,16 @@ object DailyWork {
 object Notifier {
     private const val BRIEFING = "briefing"
     private const val DEALS = "deals"
+    private const val SUBS = "subs"
+    private const val DART = "dart"
 
     fun ensureChannels(c: Context) {
         if (Build.VERSION.SDK_INT < 26) return
         val nm = c.getSystemService(NotificationManager::class.java) ?: return
         nm.createNotificationChannel(NotificationChannel(BRIEFING, "아침 브리핑", NotificationManager.IMPORTANCE_DEFAULT))
         nm.createNotificationChannel(NotificationChannel(DEALS, "새 실거래", NotificationManager.IMPORTANCE_DEFAULT))
+        nm.createNotificationChannel(NotificationChannel(SUBS, "청약 공고", NotificationManager.IMPORTANCE_DEFAULT))
+        nm.createNotificationChannel(NotificationChannel(DART, "공시", NotificationManager.IMPORTANCE_DEFAULT))
     }
 
     private fun allowed(c: Context) = Build.VERSION.SDK_INT < 33 ||
@@ -164,5 +221,43 @@ object Notifier {
             .setAutoCancel(true)
             .build()
         runCatching { NotificationManagerCompat.from(c).notify(1002, n) }
+    }
+
+    fun subscriptions(c: Context, city: String, fresh: List<AptNotice>, soon: List<Pair<AptNotice, String>>) {
+        if (!allowed(c)) return
+        ensureChannels(c)
+        val lines = fresh.take(4).map { n -> "새 공고 · ${n.name}" + (n.total?.let { " (%,d세대)".format(it) } ?: "") } +
+            soon.take(4).map { (n, step) -> "내일 ${step} · ${n.name}" }
+        val title = when {
+            fresh.isNotEmpty() -> "$city 새 분양 공고 ${fresh.size}건"
+            else -> "$city 청약 일정 · 내일 ${soon.size}건"
+        }
+        val n = NotificationCompat.Builder(c, SUBS)
+            .setSmallIcon(R.drawable.ic_stat_market)
+            .setContentTitle(title)
+            .setContentText(lines.firstOrNull().orEmpty())
+            .setStyle(NotificationCompat.InboxStyle().also { s -> lines.forEach(s::addLine) })
+            .setContentIntent(openApp(c))
+            .setAutoCancel(true)
+            .build()
+        runCatching { NotificationManagerCompat.from(c).notify(1003, n) }
+    }
+
+    fun filings(c: Context, filings: List<Filing>) {
+        if (!allowed(c)) return
+        ensureChannels(c)
+        val lines = filings.take(5).map { f ->
+            val corp = if ("하이닉스" in f.corpName) "SK하이닉스" else f.corpName
+            "$corp · [${f.kind.label}] ${f.title}"
+        }
+        val n = NotificationCompat.Builder(c, DART)
+            .setSmallIcon(R.drawable.ic_stat_market)
+            .setContentTitle("새 중요 공시 ${filings.size}건")
+            .setContentText(lines.first())
+            .setStyle(NotificationCompat.InboxStyle().also { s -> lines.forEach(s::addLine) })
+            .setContentIntent(openApp(c))
+            .setAutoCancel(true)
+            .build()
+        runCatching { NotificationManagerCompat.from(c).notify(1004, n) }
     }
 }
