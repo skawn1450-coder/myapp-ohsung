@@ -186,7 +186,13 @@ fun RealPriceContent(
                 picked,
                 onSetHome?.let { save ->
                     { area: Double ->
-                        save(HomeConfig(region.code, picked.aptSeq, picked.name, area, nearby = listOf(NearbyArea(region.code, picked.dong))))
+                        val withAddr = (picked.deals + picked.canceled).firstOrNull { it.jibun.isNotBlank() || it.road.isNotBlank() } ?: picked.latest
+                        save(
+                            HomeConfig(
+                                region.code, picked.aptSeq, picked.name, area, nearby = listOf(NearbyArea(region.code, picked.dong)),
+                                dong = picked.dong, jibun = withAddr.jibun, road = withAddr.road,
+                            ),
+                        )
                     }
                 },
             )

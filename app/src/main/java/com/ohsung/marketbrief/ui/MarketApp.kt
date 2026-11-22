@@ -73,6 +73,8 @@ fun MarketApp(
     extraEvents: List<MarketEvent> = emptyList(),
     onSubsKeySaved: () -> Unit = {},
     onDartKeySaved: () -> Unit = {},
+    showSetup: Boolean = false,
+    onSetupDismissed: () -> Unit = {},
 ) {
     var tab by rememberSaveable { mutableIntStateOf(initialTab) }
     var calSelected by rememberSaveable { mutableStateOf(initialCalendarDate?.toString()) }
@@ -87,6 +89,14 @@ fun MarketApp(
     val onCalendar = sections.isNotEmpty() && tab == calendarTab
     val current = if (onCalendar) null else sections.getOrNull(tab.coerceIn(0, (sections.size - 1).coerceAtLeast(0)))
     val openCalendar: (LocalDate) -> Unit = { d -> calSelected = d.toString(); tab = calendarTab }
+    var setupOpen by rememberSaveable { mutableStateOf(false) }
+    if (showSetup || setupOpen) {
+        HomeSetupDialog(
+            onDismiss = { setupOpen = false; onSetupDismissed() },
+            // Reloads the home and, since a key may have just been entered, the 청약 data too.
+            onDone = onSubsKeySaved,
+        )
+    }
     if (archiveOpen && archiveLoader != null) {
         ArchiveDialog(archiveLoader, onPick = { archiveOpen = false; onArchivePick(it) }, onDismiss = { archiveOpen = false })
     }
@@ -177,7 +187,7 @@ fun MarketApp(
                         current, feed!!, error, refreshKey, reselectCount, loader, update,
                         SectionExtras(
                             events, today, openCalendar, home, onHomeChanged, onHomeOpened, archiveLabel, onArchiveExit,
-                            subs, disclosures, onSubsKeySaved, onDartKeySaved,
+                            subs, disclosures, onSubsKeySaved, onDartKeySaved, onSetup = { setupOpen = true },
                         ),
                     )
                 }
@@ -206,6 +216,7 @@ private class SectionExtras(
     val disclosures: DisclosureUi,
     val onSubsKeySaved: () -> Unit,
     val onDartKeySaved: () -> Unit,
+    val onSetup: () -> Unit,
 )
 
 @Composable
@@ -238,7 +249,7 @@ private fun SectionScreen(
             x.home,
             onDismiss = { myHomeOpen = false },
             onChanged = x.onHomeChanged,
-            onChangeHome = { myHomeOpen = false; realPriceOpen = true },
+            onChangeHome = { myHomeOpen = false; x.onSetup() },
         )
     }
     if (assetOpen) AssetDialog { assetOpen = false }
@@ -279,7 +290,7 @@ private fun SectionScreen(
         }
         if (section.id == "realestate") {
             item(key = "myhome") {
-                MyHomeCard(x.home, onOpen = { x.onHomeOpened(); myHomeOpen = true }, onSetup = { realPriceOpen = true })
+                MyHomeCard(x.home, onOpen = { x.onHomeOpened(); myHomeOpen = true }, onSetup = x.onSetup)
             }
             if (feed.developments.isNotEmpty()) {
                 item(key = "developments") { DevelopmentEntry(feed.developments, x.home.config) { devOpen = true } }

@@ -28,6 +28,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.Button
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
@@ -38,6 +39,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -62,6 +64,7 @@ import com.ohsung.marketbrief.data.Development
 import com.ohsung.marketbrief.data.Geo
 import com.ohsung.marketbrief.data.HomeConfig
 import com.ohsung.marketbrief.data.HomeStore
+import kotlinx.coroutines.launch
 import kotlin.math.min
 
 fun tierColor(tier: String): Color = when (tier) {
@@ -366,24 +369,52 @@ private fun ProbabilityBar(d: Development) {
 private fun LocationSetup(home: HomeConfig?, onHomeChanged: () -> Unit) {
     val context = LocalContext.current
     val store = remember { HomeStore(context.applicationContext) }
+    val scope = rememberCoroutineScope()
     var text by rememberSaveable { mutableStateOf("") }
+    var finding by remember { mutableStateOf(false) }
+    var failed by remember { mutableStateOf(false) }
     Card {
         Text("내 단지 위치를 넣으면 거리순으로 보여 줘요", style = MaterialTheme.typography.titleSmall)
-        Muted("지도 앱에서 단지를 길게 눌러 나오는 좌표(예: 37.5665, 126.9780)를 붙여넣어 주세요. 이 폰에만 저장돼요.")
         if (home == null) {
-            Muted("먼저 부동산 탭에서 내 단지를 설정해 주세요.")
+            Muted("먼저 부동산 탭에서 내 단지를 설정해 주세요. 설정하면 위치도 자동으로 잡혀요.")
             return@Card
         }
+        Muted("단지 주소로 위치를 찾아요. 이 폰에만 저장돼요.")
         Spacer(Modifier.height(8.dp))
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            OutlinedTextField(text, { text = it }, singleLine = true, placeholder = { Text("위도, 경도") }, modifier = Modifier.weight(1f))
-            TextButton(onClick = {
-                val nums = text.split(",", " ").mapNotNull { it.trim().toDoubleOrNull() }
-                if (nums.size == 2 && nums[0] in 33.0..39.0 && nums[1] in 124.0..132.0) {
-                    store.save(home.copy(lat = nums[0], lon = nums[1]))
-                    onHomeChanged()
+        Button(
+            onClick = {
+                finding = true
+                failed = false
+                scope.launch {
+                    val hit = com.ohsung.marketbrief.data.HomeLocator(context.applicationContext).locate(home)
+                    finding = false
+                    if (hit != null) {
+                        store.save(home.copy(lat = hit.first, lon = hit.second))
+                        onHomeChanged()
+                    } else {
+                        failed = true
+                    }
                 }
-            }) { Text("저장") }
+            },
+            enabled = !finding && (home.jibun.isNotBlank() || home.road.isNotBlank() || home.dong.isNotBlank()),
+            shape = RoundedCornerShape(12.dp),
+        ) { Text(if (finding) "찾는 중…" else "자동으로 찾기") }
+        if (failed || (home.jibun.isBlank() && home.road.isBlank() && home.dong.isBlank())) {
+            Spacer(Modifier.height(8.dp))
+            Muted(
+                if (failed) "주소로 찾지 못했어요. 지도 앱에서 단지를 길게 눌러 나오는 좌표(예: 37.5665, 126.9780)를 붙여넣어 주세요."
+                else "예전에 설정한 단지라 주소가 없어요. 내 단지를 다시 설정하거나 좌표(예: 37.5665, 126.9780)를 붙여넣어 주세요.",
+            )
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                OutlinedTextField(text, { text = it }, singleLine = true, placeholder = { Text("위도, 경도") }, modifier = Modifier.weight(1f))
+                TextButton(onClick = {
+                    val nums = text.split(",", " ").mapNotNull { it.trim().toDoubleOrNull() }
+                    if (nums.size == 2 && nums[0] in 33.0..39.0 && nums[1] in 124.0..132.0) {
+                        store.save(home.copy(lat = nums[0], lon = nums[1]))
+                        onHomeChanged()
+                    }
+                }) { Text("저장") }
+            }
         }
     }
 }

@@ -25,6 +25,10 @@ data class HomeConfig(
     /** Approximate location of the complex, for distances to 호재/악재. Stored only on the phone. */
     val lat: Double? = null,
     val lon: Double? = null,
+    /** 법정동, 지번 and road address of the complex, used to find its location automatically. */
+    val dong: String = "",
+    val jibun: String = "",
+    val road: String = "",
 ) {
     val hasLocation: Boolean get() = lat != null && lon != null
     val band: Int get() = DealStats.areaBand(areaM2)
@@ -43,6 +47,7 @@ data class HomeConfig(
         .put("nearby", JSONArray(nearby.map { JSONObject().put("code", it.code).put("dong", it.dong) }))
         .put("lat", lat ?: JSONObject.NULL)
         .put("lon", lon ?: JSONObject.NULL)
+        .put("dong", dong).put("jibun", jibun).put("road", road)
         .toString()
 
     companion object {
@@ -59,6 +64,9 @@ data class HomeConfig(
                 purchaseManwon = if (o.isNull("purchase")) null else o.optInt("purchase"),
                 lat = if (o.isNull("lat")) null else o.optDouble("lat").takeIf { !it.isNaN() },
                 lon = if (o.isNull("lon")) null else o.optDouble("lon").takeIf { !it.isNaN() },
+                dong = o.optString("dong"),
+                jibun = o.optString("jibun"),
+                road = o.optString("road"),
             )
         }.getOrNull()
 

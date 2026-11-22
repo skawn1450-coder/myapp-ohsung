@@ -30,6 +30,7 @@ import com.ohsung.marketbrief.data.Feed
 import com.ohsung.marketbrief.data.FeedRepository
 import com.ohsung.marketbrief.data.HomeAnalyzer
 import com.ohsung.marketbrief.data.HomeConfig
+import com.ohsung.marketbrief.data.HomeLocator
 import com.ohsung.marketbrief.data.HomeStore
 import com.ohsung.marketbrief.data.MolitRepository
 import com.ohsung.marketbrief.data.QuoteRepository
@@ -71,6 +72,9 @@ class MainViewModel(private val app: Application) : AndroidViewModel(app) {
         private set
     var archiveLabel by mutableStateOf<String?>(null)
         private set
+    /** True on the very first launch without a home, to open the 3-step setup. */
+    var showSetup by mutableStateOf(false)
+        private set
     var subs by mutableStateOf(SubsUi())
         private set
     var disclosures by mutableStateOf(DisclosureUi())
@@ -87,6 +91,11 @@ class MainViewModel(private val app: Application) : AndroidViewModel(app) {
         homeStore.seed(buildHome())
         BonusStore(app).seed(BuildConfig.MY_SALARY.toIntOrNull(), BuildConfig.MY_UNIT)
         if (dartRepo.apiKey.isBlank() && BuildConfig.DART_KEY.isNotBlank()) dartRepo.apiKey = BuildConfig.DART_KEY
+        val settings = app.getSharedPreferences("settings", android.content.Context.MODE_PRIVATE)
+        if (homeStore.load() == null && !settings.getBoolean("setupShown", false)) {
+            showSetup = true
+            settings.edit().putBoolean("setupShown", true).apply()
+        }
         viewModelScope.launch {
             repo.loadLocal()?.let { latest = it; feed = it }
             refresh(manual = false)
@@ -184,11 +193,28 @@ class MainViewModel(private val app: Application) : AndroidViewModel(app) {
         }
     }
 
+    fun dismissSetup() {
+        showSetup = false
+    }
+
+    private val locateTried = mutableSetOf<String>()
+
     fun loadHome() {
         val cfg = homeStore.load()
         if (cfg == null) {
             home = HomeUi()
             return
+        }
+        // A home picked in the app carries its address; find it on the map once if it has no coordinates yet.
+        if (!cfg.hasLocation && (cfg.jibun.isNotBlank() || cfg.road.isNotBlank()) && locateTried.add(cfg.aptSeq + cfg.aptName)) {
+            viewModelScope.launch {
+                HomeLocator(app).locate(cfg)?.let { (lat, lon) ->
+                    homeStore.load()?.takeIf { it.aptSeq == cfg.aptSeq && !it.hasLocation }?.let { cur ->
+                        homeStore.save(cur.copy(lat = lat, lon = lon))
+                        home = home.copy(config = cur.copy(lat = lat, lon = lon))
+                    }
+                }
+            }
         }
         homeJob?.cancel()
         home = HomeUi(config = cfg, report = home.report?.takeIf { it.config.aptSeq == cfg.aptSeq }, loading = true)
@@ -267,6 +293,8 @@ class MainActivity : ComponentActivity() {
                     extraEvents = vm.subsEvents,
                     onSubsKeySaved = { vm.loadSubs(force = true); vm.loadHome() },
                     onDartKeySaved = { vm.loadDisclosures(force = true) },
+                    showSetup = vm.showSetup,
+                    onSetupDismissed = { vm.dismissSetup() },
                 )
             }
         }

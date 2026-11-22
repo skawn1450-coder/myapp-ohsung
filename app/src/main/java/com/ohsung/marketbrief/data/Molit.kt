@@ -34,6 +34,9 @@ data class Deal(
     val direct: Boolean = false,
     /** 5-digit 시군구 code the deal was reported under. */
     val sggCd: String = "",
+    /** 지번 ("1234" or "1234-5") and road address ("효원로 123"), for finding the complex on a map. */
+    val jibun: String = "",
+    val road: String = "",
 ) {
     val ym: YearMonth get() = YearMonth.of(year, month)
     /** Stable identity of a report, used to spot newly published deals. */
@@ -127,7 +130,18 @@ object MolitParser {
             canceled = m["cdealType"]?.trim() == "O",
             direct = m["dealingGbn"]?.trim() == "직거래",
             sggCd = m["sggCd"].orEmpty().trim(),
+            jibun = m["jibun"].orEmpty().trim(),
+            road = roadAddress(m),
         )
+    }
+
+    /** "효원로" + "00123" + "00004" → "효원로 123-4"; blank when there is no road name. */
+    internal fun roadAddress(m: Map<String, String>): String {
+        val name = m["roadNm"].orEmpty().trim()
+        if (name.isEmpty()) return ""
+        val main = m["roadNmBonbun"]?.trim()?.toIntOrNull() ?: return name
+        val sub = m["roadNmBubun"]?.trim()?.toIntOrNull() ?: 0
+        return if (sub > 0) "$name $main-$sub" else "$name $main"
     }
 
     private fun toRent(m: Map<String, String>): Rent? {
